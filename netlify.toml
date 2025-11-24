@@ -6,3 +6,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[build.environment]
+  # Disable secrets scanning for Firebase API keys (they are safe to be public)
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
