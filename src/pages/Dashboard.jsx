@@ -4,6 +4,10 @@ import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import ActivityDetailModal from '../components/ActivityDetailModal';
+import TotalReportModal from '../components/TotalReportModal';
+import DailyReportModal from '../components/DailyReportModal';
+import { db } from '../firebase';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import {
     LogOut,
     Plus,
@@ -21,7 +25,9 @@ import {
     ToggleLeft,
     MonitorPlay,
     Users,
-    X
+    X,
+    BarChart3,
+    Calendar
 } from 'lucide-react';
 
 const getIcon = (type) => {
@@ -47,31 +53,50 @@ export default function Dashboard() {
     const [issues, setIssues] = useState([]);
     const [selectedActivity, setSelectedActivity] = useState(null);
     const [showTeamModal, setShowTeamModal] = useState(false);
+    const [showTotalReport, setShowTotalReport] = useState(false);
+    const [showDailyReport, setShowDailyReport] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('all'); // all, tv, ap, chromecast, cloning, issue
 
-    const loadData = () => {
+    useEffect(() => {
         if (!currentProject) return;
 
-        // Load from localStorage
-        const localInstalls = JSON.parse(localStorage.getItem(`installs_${currentProject.id}`) || '[]');
-        const localIssues = JSON.parse(localStorage.getItem(`issues_${currentProject.id}`) || '[]');
+        // Listen for Installations
+        const installsQuery = query(
+            collection(db, 'projects', currentProject.id, 'installations'),
+            orderBy('createdAt', 'desc')
+        );
 
-        // Convert string dates to objects for sorting
-        setInstallations(localInstalls.map(i => ({
-            ...i,
-            createdAt: new Date(i.createdAt),
-            resolvedAt: i.resolvedAt ? new Date(i.resolvedAt) : null
-        })));
-        setIssues(localIssues.map(i => ({
-            ...i,
-            createdAt: new Date(i.createdAt),
-            resolvedAt: i.resolvedAt ? new Date(i.resolvedAt) : null
-        })));
-    };
+        const unsubscribeInstalls = onSnapshot(installsQuery, (snapshot) => {
+            const installsData = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate() || new Date(),
+                resolvedAt: doc.data().resolvedAt?.toDate() || null
+            }));
+            setInstallations(installsData);
+        });
 
-    useEffect(() => {
-        loadData();
+        // Listen for Issues
+        const issuesQuery = query(
+            collection(db, 'projects', currentProject.id, 'issues'),
+            orderBy('createdAt', 'desc')
+        );
+
+        const unsubscribeIssues = onSnapshot(issuesQuery, (snapshot) => {
+            const issuesData = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate() || new Date(),
+                resolvedAt: doc.data().resolvedAt?.toDate() || null
+            }));
+            setIssues(issuesData);
+        });
+
+        return () => {
+            unsubscribeInstalls();
+            unsubscribeIssues();
+        };
     }, [currentProject]);
 
     const handleLogout = () => {
@@ -222,12 +247,7 @@ export default function Dashboard() {
             if (!searchableText.includes(query)) return false;
         }
 
-        // Tab Filter (only if no search query, or if we want to filter search results by tab too. 
-        // User said "mindegy hogy... AP, TV", so search overrides tabs usually, but let's keep tabs active for refinement if needed.
-        // Actually, for "universal search", it's often better to ignore tabs or switch to 'all'.
-        // Let's auto-switch to 'all' when searching? Or just ignore tabs if searching?
-        // Let's make search filter the CURRENT view. So if on 'All', it searches all.
-
+        // Tab Filter
         if (activeTab === 'all') return true;
         if (activeTab === 'issues') return item.type === 'issue' || item.hasIssue;
         if (activeTab === 'tv') return item.deviceType === 'tv';
@@ -268,6 +288,9 @@ export default function Dashboard() {
                         <p className="text-xs text-muted-foreground">{currentProject.location}</p>
                     </div>
                     <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => setShowTotalReport(true)} title="Total Report">
+                            <BarChart3 className="h-5 w-5" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => setShowTeamModal(true)} title="Team">
                             <Users className="h-5 w-5" />
                         </Button>
@@ -327,11 +350,35 @@ export default function Dashboard() {
                 </div>
             )}
 
+            {/* Total Report Modal */}
+            {showTotalReport && (
+                <TotalReportModal
+                    project={currentProject}
+                    installations={installations}
+                    issues={issues}
+                    onClose={() => setShowTotalReport(false)}
+                />
+            )}
+
+            {/* Daily Report Modal */}
+            {showDailyReport && (
+                <DailyReportModal
+                    project={currentProject}
+                    installations={installations}
+                    issues={issues}
+                    onClose={() => setShowDailyReport(false)}
+                />
+            )}
+
             {/* Main Content */}
             <main className="max-w-md mx-auto p-4 space-y-6">
 
                 {/* Daily Progress Stats */}
-                <div className="grid grid-cols-4 gap-2">
+                <div
+                    className="grid grid-cols-4 gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => setShowDailyReport(true)}
+                    title="View Daily Report"
+                >
                     <div className="bg-card p-3 rounded-xl border shadow-sm text-center">
                         <p className="text-2xl font-bold text-primary">{dailyStats.total}</p>
                         <p className="text-[10px] uppercase text-muted-foreground font-semibold">Today</p>
@@ -463,7 +510,6 @@ export default function Dashboard() {
             <ActivityDetailModal
                 activity={selectedActivity}
                 onClose={() => setSelectedActivity(null)}
-                onUpdate={loadData}
             />
         </div>
     );

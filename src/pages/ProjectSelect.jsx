@@ -3,18 +3,24 @@ import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Plus, Building2, Calendar, ChevronRight, Wand2, Eraser, Users, X, UserPlus, Trash2, Download } from 'lucide-react';
+import { Plus, Building2, Calendar, ChevronRight, Wand2, Eraser, Users, X, UserPlus, Trash2, Download, Edit, Target } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { db } from '../firebase';
+import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, updateDoc, doc } from 'firebase/firestore';
 
 export default function ProjectSelect() {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingProjectId, setEditingProjectId] = useState(null);
 
     // Project Form State
     const [newProjectName, setNewProjectName] = useState('');
     const [newProjectLocation, setNewProjectLocation] = useState('');
+    const [targetTv, setTargetTv] = useState(0);
+    const [targetAp, setTargetAp] = useState(0);
 
     // Room Generator State
     const [startFloor, setStartFloor] = useState(1);
@@ -28,25 +34,29 @@ export default function ProjectSelect() {
     const [newMemberName, setNewMemberName] = useState('');
     const [newMemberRole, setNewMemberRole] = useState('Install Team');
 
-    // Delete State
-    const [projectToDelete, setProjectToDelete] = useState(null);
-    const [deletePin, setDeletePin] = useState('');
-    const [deleteError, setDeleteError] = useState('');
+    // Delete/Edit Auth State
+    const [projectToAuth, setProjectToAuth] = useState(null); // Project pending auth for delete or edit
+    const [authAction, setAuthAction] = useState(null); // 'delete' or 'edit'
+    const [authPin, setAuthPin] = useState('');
+    const [authError, setAuthError] = useState('');
 
     const { setCurrentProject } = useProject();
     const { isDemo } = useAuth(); // Should be true
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Load from LocalStorage
-        const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
-        // Mock dates
-        const projectsWithDates = localProjects.map(p => ({
-            ...p,
-            createdAt: new Date(p.createdAt)
-        }));
-        setProjects(projectsWithDates);
-        setLoading(false);
+        // Load from Firestore
+        const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const projectsData = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt ? new Date(doc.data().createdAt) : new Date()
+            }));
+            setProjects(projectsData);
+            setLoading(false);
+        });
+        return unsubscribe;
     }, []);
 
     const generateRooms = () => {
@@ -89,63 +99,91 @@ export default function ProjectSelect() {
         setTeamMembers(newTeam);
     };
 
-    const handleCreateProject = (e) => {
+    const handleSaveProject = async (e) => {
         e.preventDefault();
         if (!newProjectName.trim()) return;
 
         // Parse room list
         const rooms = roomListText.split('\n').map(r => r.trim()).filter(r => r);
 
-        const newProject = {
-            id: Date.now().toString(),
+        const projectData = {
             name: newProjectName,
             location: newProjectLocation,
             rooms: rooms,
             team: teamMembers,
-            createdAt: new Date().toISOString(),
-            status: 'active'
+            targets: {
+                tv: parseInt(targetTv) || 0,
+                ap: parseInt(targetAp) || 0
+            },
+            updatedAt: new Date().toISOString()
         };
 
-        const existing = JSON.parse(localStorage.getItem('projects') || '[]');
-        localStorage.setItem('projects', JSON.stringify([newProject, ...existing]));
+        try {
+            if (isEditing && editingProjectId) {
+                await updateDoc(doc(db, 'projects', editingProjectId), projectData);
+            } else {
+                await addDoc(collection(db, 'projects'), {
+                    ...projectData,
+                    createdAt: new Date().toISOString(),
+                    status: 'active'
+                });
+            }
 
-        // Refresh list
-        setProjects(prev => [{ ...newProject, createdAt: new Date(newProject.createdAt) }, ...prev]);
+            resetForm();
+        } catch (error) {
+            console.error("Error saving project:", error);
+            alert("Failed to save project");
+        }
+    };
 
-        // Reset form
+    const resetForm = () => {
         setNewProjectName('');
         setNewProjectLocation('');
+        setTargetTv(0);
+        setTargetAp(0);
         setRoomListText('');
         setTeamMembers([]);
         setIsCreating(false);
+        setIsEditing(false);
+        setEditingProjectId(null);
     };
 
-    const handleDeleteProject = () => {
-        if (deletePin !== '987654321') {
-            setDeleteError('Incorrect PIN');
+    const handleAuthSubmit = async () => {
+        if (authPin !== '987654321') {
+            setAuthError('Incorrect PIN');
             return;
         }
 
-        if (!projectToDelete) return;
+        if (authAction === 'delete') {
+            try {
+                await deleteDoc(doc(db, 'projects', projectToAuth.id));
+                closeAuthModal();
+            } catch (error) {
+                console.error("Error deleting project:", error);
+                alert("Failed to delete project");
+            }
+        } else if (authAction === 'edit') {
+            // Populate form for editing
+            const p = projectToAuth;
+            setNewProjectName(p.name);
+            setNewProjectLocation(p.location || '');
+            setTargetTv(p.targets?.tv || 0);
+            setTargetAp(p.targets?.ap || 0);
+            setRoomListText(p.rooms ? p.rooms.join('\n') : '');
+            setTeamMembers(p.team || []);
 
-        // Remove from projects list
-        const updatedProjects = projects.filter(p => p.id !== projectToDelete.id);
-        setProjects(updatedProjects);
+            setEditingProjectId(p.id);
+            setIsEditing(true);
+            setIsCreating(true); // Re-use the creating UI
+            closeAuthModal();
+        }
+    };
 
-        // Update localStorage
-        // 1. Projects list
-        const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
-        const filteredLocalProjects = localProjects.filter(p => p.id !== projectToDelete.id);
-        localStorage.setItem('projects', JSON.stringify(filteredLocalProjects));
-
-        // 2. Project Data
-        localStorage.removeItem(`installs_${projectToDelete.id}`);
-        localStorage.removeItem(`issues_${projectToDelete.id}`);
-
-        // Close modal
-        setProjectToDelete(null);
-        setDeletePin('');
-        setDeleteError('');
+    const closeAuthModal = () => {
+        setProjectToAuth(null);
+        setAuthAction(null);
+        setAuthPin('');
+        setAuthError('');
     };
 
     const handleExportProject = async (e, project) => {
@@ -240,7 +278,7 @@ export default function ProjectSelect() {
                         <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
                         <p className="text-muted-foreground">Select a hotel to start working</p>
                     </div>
-                    <Button onClick={() => setIsCreating(!isCreating)}>
+                    <Button onClick={() => { resetForm(); setIsCreating(!isCreating); }}>
                         <Plus className="mr-2 h-4 w-4" />
                         New Project
                     </Button>
@@ -248,8 +286,8 @@ export default function ProjectSelect() {
 
                 {isCreating && (
                     <div className="bg-card p-6 rounded-xl border shadow-sm animate-accordion-down">
-                        <h2 className="text-lg font-semibold mb-4">Create New Project</h2>
-                        <form onSubmit={handleCreateProject} className="space-y-6">
+                        <h2 className="text-lg font-semibold mb-4">{isEditing ? 'Edit Project' : 'Create New Project'}</h2>
+                        <form onSubmit={handleSaveProject} className="space-y-6">
                             {/* Basic Info */}
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div>
@@ -272,6 +310,35 @@ export default function ProjectSelect() {
                                         value={newProjectLocation}
                                         onChange={(e) => setNewProjectLocation(e.target.value)}
                                     />
+                                </div>
+                            </div>
+
+                            {/* Targets */}
+                            <div className="space-y-4 border-t pt-4">
+                                <h3 className="font-medium flex items-center gap-2">
+                                    <Target className="h-4 w-4" /> Project Targets
+                                </h3>
+                                <div className="grid gap-4 grid-cols-2">
+                                    <div>
+                                        <label className="text-sm font-medium">Total TVs</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2"
+                                            value={targetTv}
+                                            onChange={(e) => setTargetTv(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium">Total APs</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2"
+                                            value={targetAp}
+                                            onChange={(e) => setTargetAp(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -411,20 +478,25 @@ export default function ProjectSelect() {
                             </div>
 
                             <div className="flex justify-end gap-2 pt-4 border-t">
-                                <Button type="button" variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
-                                <Button type="submit">Create Project</Button>
+                                <Button type="button" variant="ghost" onClick={resetForm}>Cancel</Button>
+                                <Button type="submit">{isEditing ? 'Save Changes' : 'Create Project'}</Button>
                             </div>
                         </form>
                     </div>
                 )}
 
-                {/* Delete Confirmation Modal */}
-                {projectToDelete && (
+                {/* Auth Confirmation Modal (Delete/Edit) */}
+                {projectToAuth && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                         <div className="bg-background w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 p-6">
-                            <h2 className="text-xl font-bold text-destructive mb-2">Delete Project?</h2>
+                            <h2 className={`text-xl font-bold mb-2 ${authAction === 'delete' ? 'text-destructive' : 'text-primary'}`}>
+                                {authAction === 'delete' ? 'Delete Project?' : 'Edit Project'}
+                            </h2>
                             <p className="text-muted-foreground mb-4">
-                                This will permanently delete <strong>{projectToDelete.name}</strong> and all associated data (installations, issues, photos). This action cannot be undone.
+                                {authAction === 'delete'
+                                    ? `This will permanently delete ${projectToAuth.name} and all data. This cannot be undone.`
+                                    : `Enter PIN to edit details for ${projectToAuth.name}.`
+                                }
                             </p>
 
                             <div className="space-y-2 mb-6">
@@ -433,22 +505,23 @@ export default function ProjectSelect() {
                                     type="password"
                                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-center tracking-widest font-mono text-lg"
                                     placeholder="Enter PIN"
-                                    value={deletePin}
+                                    value={authPin}
                                     onChange={(e) => {
-                                        setDeletePin(e.target.value);
-                                        setDeleteError('');
+                                        setAuthPin(e.target.value);
+                                        setAuthError('');
                                     }}
                                 />
-                                {deleteError && <p className="text-xs text-destructive font-medium">{deleteError}</p>}
+                                {authError && <p className="text-xs text-destructive font-medium">{authError}</p>}
                             </div>
 
                             <div className="flex justify-end gap-2">
-                                <Button variant="ghost" onClick={() => {
-                                    setProjectToDelete(null);
-                                    setDeletePin('');
-                                    setDeleteError('');
-                                }}>Cancel</Button>
-                                <Button variant="destructive" onClick={handleDeleteProject}>Delete Forever</Button>
+                                <Button variant="ghost" onClick={closeAuthModal}>Cancel</Button>
+                                <Button
+                                    variant={authAction === 'delete' ? 'destructive' : 'default'}
+                                    onClick={handleAuthSubmit}
+                                >
+                                    {authAction === 'delete' ? 'Delete Forever' : 'Unlock Edit'}
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -477,13 +550,27 @@ export default function ProjectSelect() {
                                         <Download className="h-4 w-4" />
                                     </Button>
                                     <Button
+                                        variant="secondary"
+                                        size="icon"
+                                        className="h-8 w-8 shadow-sm"
+                                        title="Edit Project"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setProjectToAuth(project);
+                                            setAuthAction('edit');
+                                        }}
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
                                         variant="destructive"
                                         size="icon"
                                         className="h-8 w-8 shadow-sm"
                                         title="Delete Project"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setProjectToDelete(project);
+                                            setProjectToAuth(project);
+                                            setAuthAction('delete');
                                         }}
                                     >
                                         <Trash2 className="h-4 w-4" />
@@ -511,6 +598,10 @@ export default function ProjectSelect() {
                                             {project.team.length} members
                                         </p>
                                     )}
+                                </div>
+                                <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
+                                    {project.targets?.tv > 0 && <span>TV: {project.targets.tv}</span>}
+                                    {project.targets?.ap > 0 && <span>AP: {project.targets.ap}</span>}
                                 </div>
                                 <div className="mt-auto pt-4 flex items-center text-xs text-muted-foreground">
                                     <Calendar className="h-3 w-3 mr-1" />

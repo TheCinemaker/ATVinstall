@@ -3,8 +3,10 @@ import { X, Calendar, User, MapPin, Hash, Router, Image as ImageIcon, AlertTrian
 import { Button } from './ui/button';
 import ImageUpload from './ImageUpload';
 import { useProject } from '../contexts/ProjectContext';
+import { db } from '../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
-export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
+export default function ActivityDetailModal({ activity, onClose }) {
     const { currentProject } = useProject();
     const [isResolving, setIsResolving] = useState(false);
     const [resolutionNotes, setResolutionNotes] = useState('');
@@ -46,9 +48,9 @@ export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
         setResolutionPhotos([...resolutionPhotos, null]);
     };
 
-    const handlePhotoUpdate = (index, base64) => {
+    const handlePhotoUpdate = (index, url) => {
         const newPhotos = [...resolutionPhotos];
-        newPhotos[index] = base64;
+        newPhotos[index] = url;
         setResolutionPhotos(newPhotos);
     };
 
@@ -57,32 +59,20 @@ export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
 
         setLoading(true);
         try {
-            // Mock upload
             const validPhotos = resolutionPhotos.filter(p => p !== null);
-            const photoUrls = validPhotos.map((_, i) => `https://placehold.co/600x400?text=Resolution+Photo+${i + 1}`);
 
-            // Update the issue in localStorage
-            const storageKey = activity.type === 'issue' ? `issues_${currentProject.id}` : `installs_${currentProject.id}`;
-            const existingItems = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            // Determine collection name based on activity type
+            const collectionName = activity.type === 'issue' ? 'issues' : 'installations';
 
-            const updatedItems = existingItems.map(item => {
-                if (item.id === activity.id) {
-                    return {
-                        ...item,
-                        status: 'resolved',
-                        resolutionNotes,
-                        resolutionPhotos: photoUrls,
-                        resolvedAt: new Date().toISOString()
-                    };
-                }
-                return item;
+            const activityRef = doc(db, 'projects', currentProject.id, collectionName, activity.id);
+
+            await updateDoc(activityRef, {
+                status: 'resolved',
+                resolutionNotes,
+                resolutionPhotos: validPhotos,
+                resolvedAt: new Date()
             });
 
-            localStorage.setItem(storageKey, JSON.stringify(updatedItems));
-
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            if (onUpdate) onUpdate();
             onClose();
         } catch (error) {
             console.error("Error resolving issue:", error);
@@ -140,7 +130,7 @@ export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
                                             <ImageUpload
                                                 key={index}
                                                 label={`Proof Photo ${index + 1}`}
-                                                onImageSelect={(base64) => handlePhotoUpdate(index, base64)}
+                                                onImageCapture={(url) => handlePhotoUpdate(index, url)}
                                             />
                                         ))}
                                         <Button
