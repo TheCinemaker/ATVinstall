@@ -31,7 +31,7 @@ const DEVICE_CONFIG = {
         label: "TV Cloning",
         locations: ["Room", "Lobby", "Garage", "Bar", "Restaurant", "Gym", "Other"],
         idLabel: "Room Number or position",
-        serialLabel: "TV Serial Number (Optional)"
+        serialLabel: "INFO (Optional)"
     },
     camera: {
         label: "Camera Installation",
