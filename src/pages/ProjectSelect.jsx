@@ -316,7 +316,7 @@ export default function ProjectSelect() {
                             {/* Targets */}
                             <div className="space-y-4 border-t pt-4">
                                 <h3 className="font-medium flex items-center gap-2">
-                                    <Target className="h-4 w-4" /> Project Targets
+                                    <Target className="h-4 w-4" /> <span className="text-white">Project Targets</span>
                                 </h3>
                                 <div className="grid gap-4 grid-cols-2">
                                     <div>
@@ -345,7 +345,7 @@ export default function ProjectSelect() {
                             {/* Room Generator */}
                             <div className="space-y-4 border-t pt-4">
                                 <h3 className="font-medium flex items-center gap-2">
-                                    <Building2 className="h-4 w-4" /> Room Configuration
+                                    <Building2 className="h-4 w-4" /> <span className="text-white">Room Configuration</span>
                                 </h3>
 
                                 <div className="grid gap-4 md:grid-cols-2">
@@ -432,9 +432,7 @@ export default function ProjectSelect() {
 
                             {/* Team Configuration */}
                             <div className="space-y-4 border-t pt-4">
-                                <h3 className="font-medium flex items-center gap-2">
-                                    <Users className="h-4 w-4" /> Team Configuration
-                                </h3>
+                                <h3 className="font-medium flex items-center gap-2"><Users className="h-4 w-4" /> <span className="text-white">Team Configuration</span></h3>
 
                                 <div className="space-y-4">
                                     <div className="flex gap-2">
