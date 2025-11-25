@@ -104,7 +104,7 @@ export default function ReportIssue() {
                                 <ImageUpload
                                     key={index}
                                     label={`Photo ${index + 1}`}
-                                    onImageSelect={(base64) => handlePhotoUpdate(index, base64)}
+                                    onImageCapture={(base64) => handlePhotoUpdate(index, base64)}
                                     required={false}
                                 />
                             ))}

@@ -314,14 +314,14 @@ export default function InstallDevice() {
                             {needsPortInfo && (
                                 <ImageUpload
                                     label="Photo: Wall Socket / Port Info"
-                                    onImageSelect={setPhotoPort}
+                                    onImageCapture={setPhotoPort}
                                 />
                             )}
 
                             {!isCloning && !isSignage && (
                                 <ImageUpload
                                     label={needsPortInfo ? "Photo: Installation State" : "Photo: Installation State"}
-                                    onImageSelect={setPhotoInstall}
+                                    onImageCapture={setPhotoInstall}
                                 />
                             )}
 
@@ -329,11 +329,11 @@ export default function InstallDevice() {
                                 <>
                                     <ImageUpload
                                         label="Photo: Installation State"
-                                        onImageSelect={setPhotoInstall}
+                                        onImageCapture={setPhotoInstall}
                                     />
                                     <ImageUpload
                                         label="Photo: Configuration / Content"
-                                        onImageSelect={setPhotoConfig}
+                                        onImageCapture={setPhotoConfig}
                                     />
                                 </>
                             )}
@@ -342,7 +342,7 @@ export default function InstallDevice() {
                             {(config.serialLabel || isSwitch) && (
                                 <ImageUpload
                                     label="Photo: Serial Number / MAC"
-                                    onImageSelect={setPhotoSerial}
+                                    onImageCapture={setPhotoSerial}
                                 />
                             )}
 
@@ -350,7 +350,7 @@ export default function InstallDevice() {
                             {isCloning && (
                                 <ImageUpload
                                     label="Photo: Landing Page / Error"
-                                    onImageSelect={setPhotoSerial} // Reusing serial photo slot for cloning proof
+                                    onImageCapture={setPhotoSerial} // Reusing serial photo slot for cloning proof
                                 />
                             )}
                         </div>
