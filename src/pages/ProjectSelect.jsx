@@ -351,7 +351,7 @@ export default function ProjectSelect() {
                                 <div className="grid gap-4 md:grid-cols-2">
                                     {/* Generator Controls */}
                                     <div className="space-y-4 bg-muted/30 p-4 rounded-lg">
-                                        <h4 className="text-sm font-semibold text-muted-foreground uppercase">Generator</h4>
+                                        <h4 className="text-sm font-semibold text-gray-300 uppercase">Generator</h4>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
                                                 <label className="text-xs font-medium">Start Floor</label>
@@ -411,7 +411,7 @@ export default function ProjectSelect() {
                                                 type="button"
                                                 variant="ghost"
                                                 size="xs"
-                                                className="h-6 text-xs text-muted-foreground hover:text-destructive"
+                                                className="h-6 text-xs text-gray-300 hover:text-destructive"
                                                 onClick={() => setRoomListText('')}
                                             >
                                                 <Eraser className="h-3 w-3 mr-1" /> Clear
@@ -423,7 +423,7 @@ export default function ProjectSelect() {
                                             value={roomListText}
                                             onChange={(e) => setRoomListText(e.target.value)}
                                         />
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs text-gray-300">
                                             {roomListText ? `${roomListText.split('\n').filter(r => r.trim()).length} rooms generated` : 'No rooms added'}
                                         </p>
                                     </div>
@@ -465,7 +465,7 @@ export default function ProjectSelect() {
                                                 <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border">
                                                     <div>
                                                         <p className="font-medium text-sm">{member.name}</p>
-                                                        <p className="text-xs text-muted-foreground">{member.role}</p>
+                                                        <p className="text-xs text-gray-300">{member.role}</p>
                                                     </div>
                                                     <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveMember(idx)}>
                                                         <X className="h-3 w-3" />
@@ -492,7 +492,7 @@ export default function ProjectSelect() {
                             <h2 className={`text-xl font-bold mb-2 ${authAction === 'delete' ? 'text-destructive' : 'text-primary'}`}>
                                 {authAction === 'delete' ? 'Delete Project?' : 'Edit Project'}
                             </h2>
-                            <p className="text-muted-foreground mb-4">
+                            <p className="text-gray-300 mb-4">
                                 {authAction === 'delete'
                                     ? `This will permanently delete ${projectToAuth.name} and all data. This cannot be undone.`
                                     : `Enter PIN to edit details for ${projectToAuth.name}.`
@@ -531,7 +531,7 @@ export default function ProjectSelect() {
                     {loading ? (
                         <p>Loading projects...</p>
                     ) : projects.length === 0 ? (
-                        <p className="text-muted-foreground col-span-full text-center py-12">No projects found. Create one to get started.</p>
+                        <p className="text-gray-300 col-span-full text-center py-12">No projects found. Create one to get started.</p>
                     ) : (
                         projects.map((project) => (
                             <div
@@ -581,29 +581,29 @@ export default function ProjectSelect() {
                                     <div className="p-2 bg-primary/10 rounded-full text-primary">
                                         <Building2 className="h-6 w-6" />
                                     </div>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-primary transition-colors" />
                                 </div>
-                                <h3 className="font-semibold text-xl mt-2">{project.name}</h3>
-                                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <h3 className="font-semibold text-xl mt-2 text-white">{project.name}</h3>
+                                <p className="text-sm text-gray-300 flex items-center gap-1">
                                     {project.location || 'No location specified'}
                                 </p>
                                 <div className="flex gap-4 mt-1">
                                     {project.rooms && (
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs text-gray-300">
                                             {project.rooms.length} rooms
                                         </p>
                                     )}
                                     {project.team && (
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs text-gray-300">
                                             {project.team.length} members
                                         </p>
                                     )}
                                 </div>
-                                <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
+                                <div className="flex gap-2 mt-1 text-xs text-gray-300">
                                     {project.targets?.tv > 0 && <span>TV: {project.targets.tv}</span>}
                                     {project.targets?.ap > 0 && <span>AP: {project.targets.ap}</span>}
                                 </div>
-                                <div className="mt-auto pt-4 flex items-center text-xs text-muted-foreground">
+                                <div className="mt-auto pt-4 flex items-center text-xs text-gray-300">
                                     <Calendar className="h-3 w-3 mr-1" />
                                     {project.createdAt.toLocaleDateString() || 'Just now'}
                                 </div>
