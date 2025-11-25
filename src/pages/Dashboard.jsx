@@ -61,6 +61,8 @@ export default function Dashboard() {
     useEffect(() => {
         if (!currentProject) return;
 
+        console.log('🔍 Dashboard loading data for project:', currentProject.id, currentProject.name);
+
         // Listen for Installations
         const installsQuery = query(
             collection(db, 'projects', currentProject.id, 'installations'),
@@ -68,12 +70,14 @@ export default function Dashboard() {
         );
 
         const unsubscribeInstalls = onSnapshot(installsQuery, (snapshot) => {
+            console.log('📦 Firestore installations snapshot:', snapshot.docs.length, 'documents');
             const installsData = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
                 createdAt: doc.data().createdAt?.toDate() || new Date(),
                 resolvedAt: doc.data().resolvedAt?.toDate() || null
             }));
+            console.log('📦 Processed installations:', installsData);
             setInstallations(installsData);
         });
 
