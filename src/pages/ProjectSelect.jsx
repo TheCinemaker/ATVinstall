@@ -38,6 +38,7 @@ export default function ProjectSelect() {
     const [projectToAuth, setProjectToAuth] = useState(null); // Project pending auth for delete or edit
     const [authAction, setAuthAction] = useState(null); // 'delete' or 'edit'
     const [authPin, setAuthPin] = useState('');
+    const [newProjectPin, setNewProjectPin] = useState('');
     const [authError, setAuthError] = useState('');
 
     const { setCurrentProject } = useProject();
@@ -119,6 +120,11 @@ export default function ProjectSelect() {
         };
 
         try {
+            // PIN validation (required for creating or editing projects)
+            if (newProjectPin !== '0918273645') {
+                alert('Invalid PIN. Please enter the correct PIN to save the project.');
+                return;
+            }
             if (isEditing && editingProjectId) {
                 await updateDoc(doc(db, 'projects', editingProjectId), projectData);
             } else {
@@ -128,10 +134,11 @@ export default function ProjectSelect() {
                     status: 'active'
                 });
             }
-
+            // Reset form and PIN after successful save
             resetForm();
+            setNewProjectPin('');
         } catch (error) {
-            console.error("Error saving project:", error);
+            console.error('Error saving project:', error);
             alert("Failed to save project");
         }
     };
@@ -475,6 +482,18 @@ export default function ProjectSelect() {
                                 </div>
                             </div>
 
+                            {/* PIN Input */}
+                            <div className="mb-4">
+                                <label className="text-sm font-medium text-white">Project PIN (4 digits)</label>
+                                <input
+                                    type="password"
+                                    maxLength={4}
+                                    className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-center tracking-widest font-mono text-lg"
+                                    placeholder="e.g. 1234"
+                                    value={newProjectPin}
+                                    onChange={(e) => setNewProjectPin(e.target.value)}
+                                />
+                            </div>
                             <div className="flex justify-end gap-2 pt-4 border-t">
                                 <Button type="button" variant="ghost" onClick={resetForm}>Cancel</Button>
                                 <Button type="submit">{isEditing ? 'Save Changes' : 'Create Project'}</Button>
