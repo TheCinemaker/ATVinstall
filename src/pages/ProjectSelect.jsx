@@ -39,7 +39,12 @@ export default function ProjectSelect() {
     const [authAction, setAuthAction] = useState(null); // 'delete' or 'edit'
     const [authPin, setAuthPin] = useState('');
     const [newProjectPin, setNewProjectPin] = useState('');
-    const [authError, setAuthError] = useState('');
+    // Clear PIN when opening the create form
+    useEffect(() => {
+        if (isCreating) {
+            setNewProjectPin('');
+        }
+    }, [isCreating]);
 
     const { setCurrentProject } = useProject();
     const { isDemo } = useAuth(); // Should be true
