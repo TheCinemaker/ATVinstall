@@ -291,21 +291,21 @@ export default function ProjectSelect() {
                             {/* Basic Info */}
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div>
-                                    <label className="text-sm font-medium">Hotel Name</label>
+                                    <label className="text-sm font-medium text-white">Hotel Name</label>
                                     <input
                                         type="text"
                                         required
-                                        className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2"
+                                        className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2"
                                         placeholder="e.g. Grand Hotel Budapest"
                                         value={newProjectName}
                                         onChange={(e) => setNewProjectName(e.target.value)}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium">Location (City/Address)</label>
+                                    <label className="text-sm font-medium text-white">Location (City/Address)</label>
                                     <input
                                         type="text"
-                                        className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2"
+                                        className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2"
                                         placeholder="e.g. Budapest, Váci utca 1."
                                         value={newProjectLocation}
                                         onChange={(e) => setNewProjectLocation(e.target.value)}
@@ -320,21 +320,21 @@ export default function ProjectSelect() {
                                 </h3>
                                 <div className="grid gap-4 grid-cols-2">
                                     <div>
-                                        <label className="text-sm font-medium">Total TVs</label>
+                                        <label className="text-sm font-medium text-white">Total TVs</label>
                                         <input
                                             type="number"
                                             min="0"
-                                            className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2"
+                                            className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2"
                                             value={targetTv}
                                             onChange={(e) => setTargetTv(e.target.value)}
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium">Total APs</label>
+                                        <label className="text-sm font-medium text-white">Total APs</label>
                                         <input
                                             type="number"
                                             min="0"
-                                            className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2"
+                                            className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2"
                                             value={targetAp}
                                             onChange={(e) => setTargetAp(e.target.value)}
                                         />
@@ -358,7 +358,7 @@ export default function ProjectSelect() {
                                                 <input
                                                     type="number"
                                                     min="0"
-                                                    className="w-full rounded-md border border-input bg-background px-2 py-1"
+                                                    className="w-full rounded-md border border-input bg-gray-900/50 text-white px-2 py-1"
                                                     value={startFloor}
                                                     onChange={(e) => setStartFloor(parseInt(e.target.value) || 0)}
                                                 />
@@ -368,7 +368,7 @@ export default function ProjectSelect() {
                                                 <input
                                                     type="number"
                                                     min="0"
-                                                    className="w-full rounded-md border border-input bg-background px-2 py-1"
+                                                    className="w-full rounded-md border border-input bg-gray-900/50 text-white px-2 py-1"
                                                     value={endFloor}
                                                     onChange={(e) => setEndFloor(parseInt(e.target.value) || 0)}
                                                 />
@@ -378,7 +378,7 @@ export default function ProjectSelect() {
                                                 <input
                                                     type="number"
                                                     min="1"
-                                                    className="w-full rounded-md border border-input bg-background px-2 py-1"
+                                                    className="w-full rounded-md border border-input bg-gray-900/50 text-white px-2 py-1"
                                                     value={roomsPerFloor}
                                                     onChange={(e) => setRoomsPerFloor(parseInt(e.target.value) || 1)}
                                                 />
@@ -393,7 +393,7 @@ export default function ProjectSelect() {
                                                 checked={skip13}
                                                 onChange={(e) => setSkip13(e.target.checked)}
                                             />
-                                            <label htmlFor="skip13" className="text-sm font-medium">
+                                            <label htmlFor="skip13" className="text-sm font-medium text-white">
                                                 Skip 13 (Floor 13, Room 13, X13)
                                             </label>
                                         </div>
@@ -406,7 +406,7 @@ export default function ProjectSelect() {
                                     {/* Manual Editor */}
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center">
-                                            <label className="text-sm font-medium">Room List (One per line)</label>
+                                            <label className="text-sm font-medium text-white">Room List (One per line)</label>
                                             <Button
                                                 type="button"
                                                 variant="ghost"
@@ -418,7 +418,7 @@ export default function ProjectSelect() {
                                             </Button>
                                         </div>
                                         <textarea
-                                            className="w-full h-[200px] rounded-md border border-input bg-background px-3 py-2 font-mono text-sm"
+                                            className="w-full h-[200px] rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 font-mono text-sm"
                                             placeholder="101&#10;102&#10;..."
                                             value={roomListText}
                                             onChange={(e) => setRoomListText(e.target.value)}
@@ -440,13 +440,13 @@ export default function ProjectSelect() {
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
-                                            className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            className="flex-1 rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-sm"
                                             placeholder="Name (e.g. John Doe)"
                                             value={newMemberName}
                                             onChange={(e) => setNewMemberName(e.target.value)}
                                         />
                                         <select
-                                            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            className="rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-sm"
                                             value={newMemberRole}
                                             onChange={(e) => setNewMemberRole(e.target.value)}
                                         >
@@ -488,7 +488,7 @@ export default function ProjectSelect() {
                 {/* Auth Confirmation Modal (Delete/Edit) */}
                 {projectToAuth && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-background w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 p-6">
+                        <div className="bg-gray-900/50 text-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 p-6">
                             <h2 className={`text-xl font-bold mb-2 ${authAction === 'delete' ? 'text-destructive' : 'text-primary'}`}>
                                 {authAction === 'delete' ? 'Delete Project?' : 'Edit Project'}
                             </h2>
@@ -500,10 +500,10 @@ export default function ProjectSelect() {
                             </p>
 
                             <div className="space-y-2 mb-6">
-                                <label className="text-sm font-medium">Enter PIN to confirm</label>
+                                <label className="text-sm font-medium text-white">Enter PIN to confirm</label>
                                 <input
                                     type="password"
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-center tracking-widest font-mono text-lg"
+                                    className="w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-center tracking-widest font-mono text-lg"
                                     placeholder="Enter PIN"
                                     value={authPin}
                                     onChange={(e) => {
