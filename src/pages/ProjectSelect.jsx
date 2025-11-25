@@ -484,12 +484,12 @@ export default function ProjectSelect() {
 
                             {/* PIN Input */}
                             <div className="mb-4">
-                                <label className="text-sm font-medium text-white">Project PIN (4 digits)</label>
+                                <label className="text-sm font-medium text-white">Project PIN (10 digits)</label>
                                 <input
                                     type="password"
-                                    maxLength={4}
+                                    maxLength={10}
                                     className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-center tracking-widest font-mono text-lg"
-                                    placeholder="e.g. 1234"
+                                    placeholder="e.g. 0918273645"
                                     value={newProjectPin}
                                     onChange={(e) => setNewProjectPin(e.target.value)}
                                 />
