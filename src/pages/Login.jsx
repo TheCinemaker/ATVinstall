@@ -2,25 +2,29 @@ import { useState } from 'react';
 import { Button } from '../components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 export default function Login() {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { loginDemo } = useAuth();
+    const { loginWithEmail } = useAuth();
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
 
-        // Specific credentials requested by user
-        if (username.trim() === 'ATVinstall' && password.trim() === '12345678') {
-            loginDemo(username);
+        try {
+            await loginWithEmail(email, password);
             navigate('/projects');
-        } else {
-            console.log('Login failed:', { username, password });
-            setError(`Invalid credentials. Received: '${username}' / '${password}'. Expected: ATVinstall / 12345678`);
+        } catch (err) {
+            console.error('Login error:', err);
+            setError('Invalid email or password. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -28,25 +32,26 @@ export default function Login() {
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center">
-                    <h1 className="text-4xl font-bold tracking-tight text-primary">Networking App</h1>
-                    <p className="mt-2 text-muted-foreground font-medium text-green-600">OFFLINE MODE</p>
+                    <h1 className="text-4xl font-bold tracking-tight text-primary">ATV Install</h1>
+                    <p className="mt-2 text-muted-foreground">Network Installation Management</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="mt-8 space-y-6 bg-card p-8 rounded-xl border shadow-sm">
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-foreground">
-                                Username
+                            <label htmlFor="email" className="block text-sm font-medium text-foreground">
+                                Email
                             </label>
                             <input
-                                id="username"
-                                name="username"
-                                type="text"
+                                id="email"
+                                name="email"
+                                type="email"
                                 required
+                                autoComplete="email"
                                 className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                placeholder="Username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="your.email@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                             />
                         </div>
                         <div>
@@ -58,8 +63,9 @@ export default function Login() {
                                 name="password"
                                 type="password"
                                 required
+                                autoComplete="current-password"
                                 className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                placeholder="Password"
+                                placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
@@ -67,13 +73,20 @@ export default function Login() {
                     </div>
 
                     {error && (
-                        <div className="text-sm text-destructive text-center">
+                        <div className="text-sm text-destructive text-center bg-destructive/10 p-3 rounded-md">
                             {error}
                         </div>
                     )}
 
-                    <Button type="submit" className="w-full">
-                        Login
+                    <Button type="submit" className="w-full" disabled={loading}>
+                        {loading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Logging in...
+                            </>
+                        ) : (
+                            'Login'
+                        )}
                     </Button>
                 </form>
             </div>

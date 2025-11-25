@@ -37,6 +37,17 @@ export function AuthProvider({ children }) {
         }
     };
 
+    const loginWithEmail = async (email, password) => {
+        try {
+            const { signInWithEmailAndPassword } = await import('firebase/auth');
+            const result = await signInWithEmailAndPassword(auth, email, password);
+            setUser(result.user);
+        } catch (error) {
+            console.error("Email login failed:", error);
+            throw error;
+        }
+    };
+
     const logout = async () => {
         try {
             await signOut(auth);
@@ -49,6 +60,7 @@ export function AuthProvider({ children }) {
         user,
         isDemo,
         loginDemo,
+        loginWithEmail,
         logout
     };
 
