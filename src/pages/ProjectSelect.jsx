@@ -37,6 +37,7 @@ export default function ProjectSelect() {
     // Delete/Edit Auth State
     const [projectToAuth, setProjectToAuth] = useState(null); // Project pending auth for delete or edit
     const [authAction, setAuthAction] = useState(null); // 'delete' or 'edit'
+    const [authError, setAuthError] = useState('');
     const [projectManager, setProjectManager] = useState('');
     const deviceOptions = ['TV', 'AP', 'Chromecast', 'Switch', 'Firewall', 'Management server', 'OPC', 'Media Encoder', 'Headend'];
     const [deviceTypes, setDeviceTypes] = useState([]);
