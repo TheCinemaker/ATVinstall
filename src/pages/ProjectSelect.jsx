@@ -271,22 +271,22 @@ export default function ProjectSelect() {
     };
 
     return (
-        <div className="min-h-screen bg-background p-4 md:p-8">
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 md:p-8">
             <div className="max-w-4xl mx-auto space-y-8">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-                        <p className="text-muted-foreground">Select a hotel to start working</p>
+                        <h1 className="text-3xl font-bold tracking-tight text-white">Projects</h1>
+                        <p className="text-gray-400">Select a hotel to start working</p>
                     </div>
-                    <Button onClick={() => { resetForm(); setIsCreating(!isCreating); }}>
+                    <Button onClick={() => { resetForm(); setIsCreating(!isCreating); }} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold">
                         <Plus className="mr-2 h-4 w-4" />
                         New Project
                     </Button>
                 </div>
 
                 {isCreating && (
-                    <div className="bg-card p-6 rounded-xl border shadow-sm animate-accordion-down">
-                        <h2 className="text-lg font-semibold mb-4">{isEditing ? 'Edit Project' : 'Create New Project'}</h2>
+                    <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl border border-gray-700 shadow-2xl animate-accordion-down">
+                        <h2 className="text-lg font-semibold mb-4 text-white">{isEditing ? 'Edit Project' : 'Create New Project'}</h2>
                         <form onSubmit={handleSaveProject} className="space-y-6">
                             {/* Basic Info */}
                             <div className="grid gap-4 md:grid-cols-2">
@@ -537,7 +537,7 @@ export default function ProjectSelect() {
                             <div
                                 key={project.id}
                                 onClick={() => handleSelectProject(project)}
-                                className="group relative flex flex-col gap-2 rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:border-primary cursor-pointer"
+                                className="group relative flex flex-col gap-2 rounded-xl border border-gray-700 bg-gray-800/50 backdrop-blur-sm p-6 shadow-xl transition-all hover:shadow-2xl hover:border-yellow-500 cursor-pointer"
                             >
                                 <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-2">
                                     <Button
