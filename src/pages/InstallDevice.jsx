@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import ImageUpload from '../components/ImageUpload';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import { db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 const DEVICE_CONFIG = {
     tv: {
@@ -93,21 +95,9 @@ export default function InstallDevice() {
         e.preventDefault();
         setLoading(true);
         try {
-            // Mock upload
-            const urlSerial = photoSerial ? "https://placehold.co/600x400?text=Serial+Photo" : null;
-            const urlInstall = photoInstall ? "https://placehold.co/600x400?text=Install+Photo" : null;
-            const urlPort = photoPort ? "https://placehold.co/600x400?text=Port+Photo" : null;
-            const urlConfig = photoConfig ? "https://placehold.co/600x400?text=Config+Photo" : null;
-
-            // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-
             const finalLocationType = locationType === 'Other' ? customLocation : locationType;
 
             const newInstall = {
-                id: Date.now().toString(),
-                projectId: currentProject.id,
-                projectName: currentProject.name,
                 deviceType,
                 locationType: finalLocationType,
                 locationId,
@@ -118,18 +108,20 @@ export default function InstallDevice() {
                 isUpdateDone: isCloning ? isUpdateDone : undefined,
                 isCloningDone: isCloning ? isCloningDone : undefined,
                 notes,
-                photoSerialUrl: urlSerial,
-                photoInstallUrl: urlInstall,
-                photoPortUrl: needsPortInfo ? urlPort : undefined,
-                photoConfigUrl: isSignage ? urlConfig : undefined,
+                photoSerialUrl: photoSerial || null,
+                photoInstallUrl: photoInstall || null,
+                photoPortUrl: needsPortInfo ? (photoPort || null) : null,
+                photoConfigUrl: isSignage ? (photoConfig || null) : null,
                 hasIssue,
                 issueDescription,
-                installer: user?.email || 'Offline User',
-                createdAt: new Date().toISOString()
+                installerName: user?.displayName || user?.email || 'Anonymous',
+                installer: user?.email || 'anonymous@user.com',
+                createdAt: new Date(),
+                status: hasIssue ? 'active' : 'completed'
             };
 
-            const existing = JSON.parse(localStorage.getItem(`installs_${currentProject.id}`) || '[]');
-            localStorage.setItem(`installs_${currentProject.id}`, JSON.stringify([newInstall, ...existing]));
+            // Save to Firestore
+            await addDoc(collection(db, 'projects', currentProject.id, 'installations'), newInstall);
 
             navigate('/dashboard');
         } catch (error) {

@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import ImageUpload from '../components/ImageUpload';
 import { ArrowLeft, Loader2, Plus } from 'lucide-react';
+import { db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 export default function ReportIssue() {
     const { currentProject } = useProject();
@@ -32,26 +34,20 @@ export default function ReportIssue() {
 
         setLoading(true);
         try {
-            // Mock upload for each photo
             const validPhotos = photos.filter(p => p !== null);
-            const photoUrls = validPhotos.map((_, i) => `https://placehold.co/600x400?text=Issue+Photo+${i + 1}`);
 
             const newIssue = {
-                id: Date.now().toString(),
-                projectId: currentProject.id,
-                projectName: currentProject.name,
                 location,
                 description,
-                photos: photoUrls,
+                photos: validPhotos,
                 status: 'open',
-                reportedBy: user?.email || 'Offline User',
-                createdAt: new Date().toISOString(),
+                reportedBy: user?.email || 'anonymous@user.com',
+                createdAt: new Date(),
                 type: 'issue'
             };
-            const existing = JSON.parse(localStorage.getItem(`issues_${currentProject.id}`) || '[]');
-            localStorage.setItem(`issues_${currentProject.id}`, JSON.stringify([newIssue, ...existing]));
 
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Save to Firestore
+            await addDoc(collection(db, 'projects', currentProject.id, 'issues'), newIssue);
 
             navigate('/dashboard');
         } catch (error) {
