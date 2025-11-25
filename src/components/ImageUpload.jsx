@@ -58,7 +58,7 @@ export default function ImageUpload({ onImageCapture, label = "Take Photo", curr
                 onImageCapture(base64String); // Pass Base64 string instead of URL
             } catch (error) {
                 console.error("Error processing image:", error);
-                alert("Failed to process image.");
+                alert(`Failed to process image: ${error.message}`);
             } finally {
                 setProcessing(false);
             }
