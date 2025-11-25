@@ -27,11 +27,19 @@ import {
     Users,
     X,
     BarChart3,
-    Calendar
+    Calendar,
+    Server,
+    Shield,
+    Radio,
+    Disc,
+    Monitor,
+    MoreHorizontal,
+    Info,
+    Phone
 } from 'lucide-react';
 
 const getIcon = (type) => {
-    switch (type) {
+    switch (type?.toLowerCase()) {
         case 'tv': return <Tv className="h-5 w-5" />;
         case 'ap': return <Wifi className="h-5 w-5" />;
         case 'chromecast': return <Cast className="h-5 w-5" />;
@@ -40,6 +48,12 @@ const getIcon = (type) => {
         case 'camera': return <Camera className="h-5 w-5" />;
         case 'switch': return <ToggleLeft className="h-5 w-5" />;
         case 'signage': return <MonitorPlay className="h-5 w-5" />;
+        case 'firewall': return <Shield className="h-5 w-5" />;
+        case 'management server': return <Server className="h-5 w-5" />;
+        case 'opc': return <Disc className="h-5 w-5" />;
+        case 'media encoder': return <Radio className="h-5 w-5" />;
+        case 'headend': return <Server className="h-5 w-5" />;
+        case 'other': return <MoreHorizontal className="h-5 w-5" />;
         default: return <CheckCircle2 className="h-5 w-5" />;
     }
 };
@@ -53,6 +67,7 @@ export default function Dashboard() {
     const [issues, setIssues] = useState([]);
     const [selectedActivity, setSelectedActivity] = useState(null);
     const [showTeamModal, setShowTeamModal] = useState(false);
+    const [showProjectInfo, setShowProjectInfo] = useState(false);
     const [showTotalReport, setShowTotalReport] = useState(false);
     const [showDailyReport, setShowDailyReport] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -134,10 +149,15 @@ export default function Dashboard() {
 
     const dailyStats = {
         total: 0,
-        tv: 0,
-        ap: 0,
-        issues: 0
+        issues: 0,
+        // Dynamic device counters will be added here
     };
+
+    // Initialize counters for all project devices
+    const projectDevices = currentProject?.devices || ['TV', 'AP'];
+    projectDevices.forEach(device => {
+        dailyStats[device.toLowerCase()] = 0;
+    });
 
     activities.forEach(item => {
         // Count resolved issues as "done" today if resolved today
@@ -150,8 +170,11 @@ export default function Dashboard() {
             }
 
             if (item.type === 'issue' || item.hasIssue) dailyStats.issues++; // Keep tracking total issues reported/active
-            if (item.deviceType === 'tv') dailyStats.tv++;
-            if (item.deviceType === 'ap') dailyStats.ap++;
+
+            // Increment specific device counter if it exists
+            if (item.deviceType && dailyStats[item.deviceType.toLowerCase()] !== undefined) {
+                dailyStats[item.deviceType.toLowerCase()]++;
+            }
         }
     });
 
@@ -254,11 +277,7 @@ export default function Dashboard() {
         // Tab Filter
         if (activeTab === 'all') return true;
         if (activeTab === 'issues') return item.type === 'issue' || item.hasIssue;
-        if (activeTab === 'tv') return item.deviceType === 'tv';
-        if (activeTab === 'ap') return item.deviceType === 'ap';
-        if (activeTab === 'cc') return item.deviceType === 'chromecast';
-        if (activeTab === 'cloning') return item.deviceType === 'cloning';
-        return true;
+        return item.deviceType?.toLowerCase() === activeTab.toLowerCase();
     });
 
     const sortedActivities = filteredActivities.sort((a, b) => {
@@ -292,6 +311,9 @@ export default function Dashboard() {
                         <p className="text-xs text-muted-foreground">{currentProject.location}</p>
                     </div>
                     <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => setShowProjectInfo(true)} title="Project Info">
+                            <Info className="h-5 w-5" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => setShowTotalReport(true)} title="Total Report">
                             <BarChart3 className="h-5 w-5" />
                         </Button>
@@ -307,6 +329,57 @@ export default function Dashboard() {
                     </div>
                 </div>
             </header>
+
+            {/* Project Info Modal */}
+            {showProjectInfo && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-background w-full max-w-sm rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b flex items-center justify-between bg-muted/30">
+                            <h2 className="font-bold text-lg flex items-center gap-2">
+                                <Info className="h-5 w-5" /> Project Info
+                            </h2>
+                            <Button variant="ghost" size="icon" onClick={() => setShowProjectInfo(false)} className="rounded-full">
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        <div className="p-4 space-y-6">
+                            {/* Manager */}
+                            <div className="space-y-2">
+                                <h3 className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                                    <Users className="h-3 w-3" /> Project Manager
+                                </h3>
+                                <div className="p-3 bg-card rounded-lg border">
+                                    <p className="font-medium">{currentProject.manager || 'Not assigned'}</p>
+                                </div>
+                            </div>
+
+                            {/* Contacts */}
+                            <div className="space-y-2">
+                                <h3 className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                                    <Users className="h-3 w-3" /> Contacts
+                                </h3>
+                                <div className="space-y-2">
+                                    {currentProject.contacts && currentProject.contacts.length > 0 ? (
+                                        currentProject.contacts.map((contact, idx) => (
+                                            <div key={idx} className="flex justify-between items-center p-3 bg-card rounded-lg border">
+                                                <div>
+                                                    <p className="font-medium text-sm">{contact.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{contact.phone}</p>
+                                                </div>
+                                                <a href={`tel:${contact.phone}`} className="p-2 bg-primary/10 rounded-full text-primary hover:bg-primary/20">
+                                                    <Phone className="h-4 w-4" />
+                                                </a>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground italic">No contacts listed.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Team Modal */}
             {showTeamModal && (
@@ -387,18 +460,18 @@ export default function Dashboard() {
                         <p className="text-2xl font-bold text-primary">{dailyStats.total}</p>
                         <p className="text-[10px] uppercase text-muted-foreground font-semibold">Today</p>
                     </div>
-                    <div className="bg-blue-500/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900 text-center">
-                        <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{dailyStats.tv}</p>
-                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">TVs</p>
-                    </div>
-                    <div className="bg-green-500/10 p-3 rounded-xl border border-green-100 dark:border-green-900 text-center">
-                        <p className="text-xl font-bold text-green-600 dark:text-green-400">{dailyStats.ap}</p>
-                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">APs</p>
-                    </div>
-                    <div className="bg-red-500/10 p-3 rounded-xl border border-red-100 dark:border-red-900 text-center">
-                        <p className="text-xl font-bold text-red-600 dark:text-red-400">{dailyStats.issues}</p>
-                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">Issues</p>
-                    </div>
+                    {projectDevices.slice(0, 3).map(device => (
+                        <div key={device} className="bg-muted/30 p-3 rounded-xl border text-center">
+                            <p className="text-xl font-bold">{dailyStats[device.toLowerCase()] || 0}</p>
+                            <p className="text-[10px] uppercase text-muted-foreground font-semibold">{device}s</p>
+                        </div>
+                    ))}
+                    {dailyStats.issues > 0 && (
+                        <div className="bg-red-500/10 p-3 rounded-xl border border-red-100 dark:border-red-900 text-center">
+                            <p className="text-xl font-bold text-red-600 dark:text-red-400">{dailyStats.issues}</p>
+                            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Issues</p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -442,18 +515,36 @@ export default function Dashboard() {
                         />
                     </div>
 
-                    {/* Tabs */}
-                    <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
-                        {['all', 'tv', 'ap', 'cc', 'cloning', 'issues'].map(tab => (
+                    {/* Filter Tabs */}
+                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                        <button
+                            onClick={() => setActiveTab('all')}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${activeTab === 'all'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                }`}
+                        >
+                            All
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('issues')}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${activeTab === 'issues'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                }`}
+                        >
+                            Issues
+                        </button>
+                        {projectDevices.map(device => (
                             <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab
+                                key={device}
+                                onClick={() => setActiveTab(device.toLowerCase())}
+                                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${activeTab === device.toLowerCase()
                                     ? 'bg-primary text-primary-foreground'
-                                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
                                     }`}
                             >
-                                {tab === 'cc' ? 'Chromecast' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                {device}
                             </button>
                         ))}
                     </div>
