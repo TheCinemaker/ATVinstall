@@ -120,6 +120,13 @@ export default function InstallDevice() {
                 status: hasIssue ? 'active' : 'completed'
             };
 
+            // Remove undefined fields (Firestore doesn't accept them)
+            Object.keys(newInstall).forEach(key => {
+                if (newInstall[key] === undefined) {
+                    delete newInstall[key];
+                }
+            });
+
             // Save to Firestore
             await addDoc(collection(db, 'projects', currentProject.id, 'installations'), newInstall);
 
