@@ -3,7 +3,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Plus, Building2, Calendar, ChevronRight, Wand2, Eraser, Users, X, UserPlus, Trash2, Download, Edit, Target } from 'lucide-react';
+import { Plus, Building2, Calendar, ChevronRight, Wand2, Eraser, Users, X, UserPlus, Trash2, Download, Edit, Target, Search } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { db } from '../firebase';
@@ -15,6 +15,7 @@ export default function ProjectSelect() {
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editingProjectId, setEditingProjectId] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Project Form State
     const [newProjectName, setNewProjectName] = useState('');
@@ -343,6 +344,18 @@ export default function ProjectSelect() {
                         <Plus className="mr-2 h-4 w-4" />
                         New Project
                     </Button>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search projects by name or location..."
+                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-700 bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500 transition-colors"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                 </div>
 
                 {isCreating && (
@@ -700,82 +713,87 @@ export default function ProjectSelect() {
                     ) : projects.length === 0 ? (
                         <p className="text-gray-300 col-span-full text-center py-12">No projects found. Create one to get started.</p>
                     ) : (
-                        projects.map((project) => (
-                            <div
-                                key={project.id}
-                                onClick={() => handleSelectProject(project)}
-                                className="group relative flex flex-col gap-2 rounded-xl border border-gray-700 bg-gray-800/50 backdrop-blur-sm p-6 shadow-xl transition-all hover:shadow-2xl hover:border-yellow-500 cursor-pointer"
-                            >
-                                <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-2">
-                                    <Button
-                                        variant="secondary"
-                                        size="icon"
-                                        className="h-8 w-8 shadow-sm"
-                                        title="Export Project"
-                                        onClick={(e) => handleExportProject(e, project)}
-                                    >
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="secondary"
-                                        size="icon"
-                                        className="h-8 w-8 shadow-sm"
-                                        title="Edit Project"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setProjectToAuth(project);
-                                            setAuthAction('edit');
-                                        }}
-                                    >
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="destructive"
-                                        size="icon"
-                                        className="h-8 w-8 shadow-sm"
-                                        title="Delete Project"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setProjectToAuth(project);
-                                            setAuthAction('delete');
-                                        }}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div className="p-2 bg-primary/10 rounded-full text-primary">
-                                        <Building2 className="h-6 w-6" />
+                        projects
+                            .filter(project =>
+                                project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                (project.location && project.location.toLowerCase().includes(searchQuery.toLowerCase()))
+                            )
+                            .map((project) => (
+                                <div
+                                    key={project.id}
+                                    onClick={() => handleSelectProject(project)}
+                                    className="group relative flex flex-col gap-2 rounded-xl border border-gray-700 bg-gray-800/50 backdrop-blur-sm p-6 shadow-xl transition-all hover:shadow-2xl hover:border-yellow-500 cursor-pointer"
+                                >
+                                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-2">
+                                        <Button
+                                            variant="secondary"
+                                            size="icon"
+                                            className="h-8 w-8 shadow-sm"
+                                            title="Export Project"
+                                            onClick={(e) => handleExportProject(e, project)}
+                                        >
+                                            <Download className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="secondary"
+                                            size="icon"
+                                            className="h-8 w-8 shadow-sm"
+                                            title="Edit Project"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setProjectToAuth(project);
+                                                setAuthAction('edit');
+                                            }}
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="destructive"
+                                            size="icon"
+                                            className="h-8 w-8 shadow-sm"
+                                            title="Delete Project"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setProjectToAuth(project);
+                                                setAuthAction('delete');
+                                            }}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </div>
-                                    <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-primary transition-colors" />
+
+                                    <div className="flex items-center justify-between">
+                                        <div className="p-2 bg-primary/10 rounded-full text-primary">
+                                            <Building2 className="h-6 w-6" />
+                                        </div>
+                                        <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-primary transition-colors" />
+                                    </div>
+                                    <h3 className="font-semibold text-xl mt-2 text-white">{project.name}</h3>
+                                    <p className="text-sm text-gray-300 flex items-center gap-1">
+                                        {project.location || 'No location specified'}
+                                    </p>
+                                    <div className="flex gap-4 mt-1">
+                                        {project.rooms && (
+                                            <p className="text-xs text-gray-300">
+                                                {project.rooms.length} rooms
+                                            </p>
+                                        )}
+                                        {project.team && (
+                                            <p className="text-xs text-gray-300">
+                                                {project.team.length} members
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2 mt-1 text-xs text-gray-300">
+                                        {project.targets?.tv > 0 && <span>TV: {project.targets.tv}</span>}
+                                        {project.targets?.ap > 0 && <span>AP: {project.targets.ap}</span>}
+                                    </div>
+                                    <div className="mt-auto pt-4 flex items-center text-xs text-gray-300">
+                                        <Calendar className="h-3 w-3 mr-1" />
+                                        {project.createdAt.toLocaleDateString() || 'Just now'}
+                                    </div>
                                 </div>
-                                <h3 className="font-semibold text-xl mt-2 text-white">{project.name}</h3>
-                                <p className="text-sm text-gray-300 flex items-center gap-1">
-                                    {project.location || 'No location specified'}
-                                </p>
-                                <div className="flex gap-4 mt-1">
-                                    {project.rooms && (
-                                        <p className="text-xs text-gray-300">
-                                            {project.rooms.length} rooms
-                                        </p>
-                                    )}
-                                    {project.team && (
-                                        <p className="text-xs text-gray-300">
-                                            {project.team.length} members
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="flex gap-2 mt-1 text-xs text-gray-300">
-                                    {project.targets?.tv > 0 && <span>TV: {project.targets.tv}</span>}
-                                    {project.targets?.ap > 0 && <span>AP: {project.targets.ap}</span>}
-                                </div>
-                                <div className="mt-auto pt-4 flex items-center text-xs text-gray-300">
-                                    <Calendar className="h-3 w-3 mr-1" />
-                                    {project.createdAt.toLocaleDateString() || 'Just now'}
-                                </div>
-                            </div>
-                        ))
+                            ))
                     )}
                 </div>
             </div>
