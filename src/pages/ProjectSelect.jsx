@@ -37,6 +37,13 @@ export default function ProjectSelect() {
     // Delete/Edit Auth State
     const [projectToAuth, setProjectToAuth] = useState(null); // Project pending auth for delete or edit
     const [authAction, setAuthAction] = useState(null); // 'delete' or 'edit'
+    const [projectManager, setProjectManager] = useState('');
+    const deviceOptions = ['TV', 'AP', 'Chromecast', 'Switch', 'Firewall', 'Management server', 'OPC', 'Media Encoder', 'Headend'];
+    const [deviceTypes, setDeviceTypes] = useState([]);
+    const [newDevice, setNewDevice] = useState('');
+    const [contacts, setContacts] = useState([]);
+    const [newContactName, setNewContactName] = useState('');
+    const [newContactPhone, setNewContactPhone] = useState('');
     const [authPin, setAuthPin] = useState('');
     const [newProjectPin, setNewProjectPin] = useState('');
     // Clear PIN when opening the create form
@@ -105,6 +112,37 @@ export default function ProjectSelect() {
         setTeamMembers(newTeam);
     };
 
+    const handleAddDevice = (device) => {
+        if (!deviceTypes.includes(device)) {
+            setDeviceTypes([...deviceTypes, device]);
+        }
+    };
+
+    const handleRemoveDevice = (device) => {
+        setDeviceTypes(deviceTypes.filter(d => d !== device));
+    };
+
+    const handleAddCustomDevice = () => {
+        if (newDevice && !deviceTypes.includes(newDevice)) {
+            setDeviceTypes([...deviceTypes, newDevice]);
+            setNewDevice('');
+        }
+    };
+
+    const handleAddContact = () => {
+        if (newContactName && newContactPhone) {
+            setContacts([...contacts, { name: newContactName, phone: newContactPhone }]);
+            setNewContactName('');
+            setNewContactPhone('');
+        }
+    };
+
+    const handleRemoveContact = (index) => {
+        const newContacts = [...contacts];
+        newContacts.splice(index, 1);
+        setContacts(newContacts);
+    };
+
     const handleSaveProject = async (e) => {
         e.preventDefault();
         if (!newProjectName.trim()) return;
@@ -121,6 +159,9 @@ export default function ProjectSelect() {
                 tv: parseInt(targetTv) || 0,
                 ap: parseInt(targetAp) || 0
             },
+            manager: projectManager,
+            devices: deviceTypes,
+            contacts: contacts,
             updatedAt: new Date().toISOString()
         };
 
@@ -155,9 +196,16 @@ export default function ProjectSelect() {
         setTargetAp(0);
         setRoomListText('');
         setTeamMembers([]);
+        setProjectManager('');
+        setDeviceTypes([]);
+        setContacts([]);
+        setNewDevice('');
+        setNewContactName('');
+        setNewContactPhone('');
         setIsCreating(false);
         setIsEditing(false);
         setEditingProjectId(null);
+        setNewProjectPin('');
     };
 
     const handleAuthSubmit = async () => {
@@ -301,6 +349,17 @@ export default function ProjectSelect() {
                         <h2 className="text-lg font-semibold mb-4 text-white">{isEditing ? 'Edit Project' : 'Create New Project'}</h2>
                         <form onSubmit={handleSaveProject} className="space-y-6">
                             {/* Basic Info */}
+                            <div>
+                                <label className="text-sm font-medium text-white">Project Manager</label>
+                                <input
+                                    type="text"
+                                    className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2"
+                                    placeholder="Project Manager Name"
+                                    value={projectManager}
+                                    onChange={(e) => setProjectManager(e.target.value)}
+                                />
+                            </div>
+
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div>
                                     <label className="text-sm font-medium text-white">Hotel Name</label>
@@ -312,6 +371,48 @@ export default function ProjectSelect() {
                                         value={newProjectName}
                                         onChange={(e) => setNewProjectName(e.target.value)}
                                     />
+                                </div>
+
+                                {/* Device Types */}
+                                <div className="space-y-4 border-t pt-4">
+                                    <h3 className="font-medium flex items-center gap-2">
+                                        <Target className="h-4 w-4" /> <span className="text-white">Device Scope</span>
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {deviceOptions.map(device => (
+                                            <button
+                                                key={device}
+                                                type="button"
+                                                onClick={() => deviceTypes.includes(device) ? handleRemoveDevice(device) : handleAddDevice(device)}
+                                                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${deviceTypes.includes(device)
+                                                    ? 'bg-yellow-500 text-black border-yellow-500'
+                                                    : 'bg-transparent text-gray-300 border-gray-600 hover:border-gray-400'
+                                                    }`}
+                                            >
+                                                {device}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2 mt-2">
+                                        <input
+                                            type="text"
+                                            className="flex-1 rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-sm"
+                                            placeholder="Other Device Type"
+                                            value={newDevice}
+                                            onChange={(e) => setNewDevice(e.target.value)}
+                                        />
+                                        <Button type="button" size="sm" onClick={handleAddCustomDevice}>Add</Button>
+                                    </div>
+                                    {deviceTypes.filter(d => !deviceOptions.includes(d)).length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {deviceTypes.filter(d => !deviceOptions.includes(d)).map(device => (
+                                                <span key={device} className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-yellow-500 text-black border border-yellow-500">
+                                                    {device}
+                                                    <X className="h-3 w-3 cursor-pointer" onClick={() => handleRemoveDevice(device)} />
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-white">Location (City/Address)</label>
@@ -478,6 +579,49 @@ export default function ProjectSelect() {
                                                         <p className="text-xs text-gray-300">{member.role}</p>
                                                     </div>
                                                     <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveMember(idx)}>
+                                                        <X className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Contacts */}
+                            <div className="space-y-4 border-t pt-4">
+                                <h3 className="font-medium flex items-center gap-2">
+                                    <Users className="h-4 w-4" /> <span className="text-white">Contacts</span>
+                                </h3>
+                                <div className="space-y-4">
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            className="flex-1 rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-sm"
+                                            placeholder="Contact Name"
+                                            value={newContactName}
+                                            onChange={(e) => setNewContactName(e.target.value)}
+                                        />
+                                        <input
+                                            type="tel"
+                                            className="flex-1 rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-sm"
+                                            placeholder="Phone Number"
+                                            value={newContactPhone}
+                                            onChange={(e) => setNewContactPhone(e.target.value)}
+                                        />
+                                        <Button type="button" size="icon" onClick={handleAddContact}>
+                                            <Plus className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    {contacts.length > 0 && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {contacts.map((contact, idx) => (
+                                                <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border">
+                                                    <div>
+                                                        <p className="font-medium text-sm text-white">{contact.name}</p>
+                                                        <p className="text-xs text-gray-300">{contact.phone}</p>
+                                                    </div>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveContact(idx)}>
                                                         <X className="h-3 w-3" />
                                                     </Button>
                                                 </div>
