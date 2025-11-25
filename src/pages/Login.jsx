@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 export default function Login() {
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -18,11 +18,13 @@ export default function Login() {
         setLoading(true);
 
         try {
+            // Auto-append @atvinstall.com to username
+            const email = `${username.toLowerCase().trim()}@atvinstall.com`;
             await loginWithEmail(email, password);
             navigate('/projects');
         } catch (err) {
             console.error('Login error:', err);
-            setError('Invalid email or password. Please try again.');
+            setError('Invalid username or password. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -39,19 +41,19 @@ export default function Login() {
                 <form onSubmit={handleLogin} className="mt-8 space-y-6 bg-card p-8 rounded-xl border shadow-sm">
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-foreground">
-                                Email
+                            <label htmlFor="username" className="block text-sm font-medium text-foreground">
+                                Username
                             </label>
                             <input
-                                id="email"
-                                name="email"
-                                type="email"
+                                id="username"
+                                name="username"
+                                type="text"
                                 required
-                                autoComplete="email"
+                                autoComplete="username"
                                 className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                placeholder="your.email@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Zaza, Vano, Georg..."
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                             />
                         </div>
                         <div>
