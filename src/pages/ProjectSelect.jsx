@@ -46,6 +46,7 @@ export default function ProjectSelect() {
     const [contacts, setContacts] = useState([]);
     const [newContactName, setNewContactName] = useState('');
     const [newContactPhone, setNewContactPhone] = useState('');
+    const [blueprints, setBlueprints] = useState([]);
     const [authPin, setAuthPin] = useState('');
     const [newProjectPin, setNewProjectPin] = useState('');
     // Clear PIN when opening the create form
@@ -145,6 +146,26 @@ export default function ProjectSelect() {
         setContacts(newContacts);
     };
 
+    const handleBlueprintUpload = (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setBlueprints(prev => [...prev, {
+                    name: file.name,
+                    type: file.type,
+                    data: reader.result,
+                    uploadedAt: new Date().toISOString()
+                }]);
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleRemoveBlueprint = (index) => {
+        setBlueprints(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleSaveProject = async (e) => {
         e.preventDefault();
         if (!newProjectName.trim()) return;
@@ -164,6 +185,7 @@ export default function ProjectSelect() {
             manager: projectManager,
             devices: deviceTypes,
             contacts: contacts,
+            blueprints: blueprints,
             updatedAt: new Date().toISOString()
         };
 
@@ -201,6 +223,7 @@ export default function ProjectSelect() {
         setProjectManager('');
         setDeviceTypes([]);
         setContacts([]);
+        setBlueprints([]);
         setNewDevice('');
         setNewContactName('');
         setNewContactPhone('');
@@ -638,6 +661,51 @@ export default function ProjectSelect() {
                                                     <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveContact(idx)}>
                                                         <X className="h-3 w-3" />
                                                     </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Blueprints */}
+                            <div className="space-y-4 border-t pt-4">
+                                <h3 className="font-medium flex items-center gap-2">
+                                    <Target className="h-4 w-4" /> <span className="text-white">Blueprints & Plans</span>
+                                </h3>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <label className="flex-1 cursor-pointer">
+                                            <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-600 rounded-lg hover:border-yellow-500 transition-colors bg-gray-900/30">
+                                                <div className="text-center">
+                                                    <Download className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                                                    <p className="text-sm text-gray-300">Click to upload images</p>
+                                                    <p className="text-xs text-gray-500">(JPG, PNG)</p>
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={handleBlueprintUpload}
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {blueprints.length > 0 && (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                            {blueprints.map((bp, idx) => (
+                                                <div key={idx} className="relative group aspect-video bg-black rounded-lg overflow-hidden border border-gray-700">
+                                                    <img src={bp.data} alt={bp.name} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
+                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveBlueprint(idx)}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                    <div className="absolute bottom-0 left-0 right-0 p-1 bg-black/70 text-xs text-white truncate">
+                                                        {bp.name}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>

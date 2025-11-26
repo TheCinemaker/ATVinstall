@@ -35,7 +35,8 @@ import {
     Monitor,
     MoreHorizontal,
     Info,
-    Phone
+    Phone,
+    Map
 } from 'lucide-react';
 
 const getIcon = (type) => {
@@ -68,6 +69,7 @@ export default function Dashboard() {
     const [selectedActivity, setSelectedActivity] = useState(null);
     const [showTeamModal, setShowTeamModal] = useState(false);
     const [showProjectInfo, setShowProjectInfo] = useState(false);
+    const [showBlueprints, setShowBlueprints] = useState(false);
     const [showTotalReport, setShowTotalReport] = useState(false);
     const [showDailyReport, setShowDailyReport] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -314,6 +316,9 @@ export default function Dashboard() {
                         <Button variant="ghost" size="icon" onClick={() => setShowProjectInfo(true)} title="Project Info">
                             <Info className="h-5 w-5" />
                         </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setShowBlueprints(true)} title="Blueprints">
+                            <Map className="h-5 w-5" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => setShowTotalReport(true)} title="Total Report">
                             <BarChart3 className="h-5 w-5" />
                         </Button>
@@ -376,6 +381,51 @@ export default function Dashboard() {
                                     )}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Blueprints Modal */}
+            {showBlueprints && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-background w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        <div className="p-4 border-b flex items-center justify-between bg-muted/30">
+                            <h2 className="font-bold text-lg flex items-center gap-2">
+                                <Map className="h-5 w-5" /> Blueprints & Plans
+                            </h2>
+                            <Button variant="ghost" size="icon" onClick={() => setShowBlueprints(false)} className="rounded-full">
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        <div className="p-4 overflow-y-auto flex-1">
+                            {currentProject.blueprints && currentProject.blueprints.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {currentProject.blueprints.map((bp, idx) => (
+                                        <div key={idx} className="space-y-2">
+                                            <div className="relative group aspect-video bg-black rounded-lg overflow-hidden border border-gray-700">
+                                                <img src={bp.data} alt={bp.name} className="w-full h-full object-contain" />
+                                                <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                    <a
+                                                        href={bp.data}
+                                                        download={bp.name}
+                                                        className="bg-background/80 text-foreground p-2 rounded-full shadow-lg hover:bg-background transition-colors"
+                                                        title="Download"
+                                                    >
+                                                        <Download className="h-5 w-5" />
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm font-medium text-center truncate">{bp.name}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <Map className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                                    <p>No blueprints uploaded for this project.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
