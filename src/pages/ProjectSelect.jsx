@@ -47,7 +47,6 @@ export default function ProjectSelect() {
     const [newContactName, setNewContactName] = useState('');
     const [newContactPhone, setNewContactPhone] = useState('');
     const [blueprints, setBlueprints] = useState([]);
-    const [importantInfo, setImportantInfo] = useState('');
     const [authPin, setAuthPin] = useState('');
     const [newProjectPin, setNewProjectPin] = useState('');
     // Clear PIN when opening the create form
@@ -187,7 +186,6 @@ export default function ProjectSelect() {
             devices: deviceTypes,
             contacts: contacts,
             blueprints: blueprints,
-            importantInfo: importantInfo,
             updatedAt: new Date().toISOString()
         };
 
@@ -226,7 +224,6 @@ export default function ProjectSelect() {
         setDeviceTypes([]);
         setContacts([]);
         setBlueprints([]);
-        setImportantInfo('');
         setNewDevice('');
         setNewContactName('');
         setNewContactPhone('');
@@ -263,7 +260,6 @@ export default function ProjectSelect() {
             setDeviceTypes(p.devices || []);
             setContacts(p.contacts || []);
             setBlueprints(p.blueprints || []);
-            setImportantInfo(p.importantInfo || '');
 
             setEditingProjectId(p.id);
             setIsEditing(true);

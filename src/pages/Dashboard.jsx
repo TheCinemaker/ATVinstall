@@ -7,7 +7,8 @@ import ActivityDetailModal from '../components/ActivityDetailModal';
 import TotalReportModal from '../components/TotalReportModal';
 import DailyReportModal from '../components/DailyReportModal';
 import { db } from '../firebase';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
 import {
     LogOut,
     Plus,
@@ -36,7 +37,9 @@ import {
     MoreHorizontal,
     Info,
     Phone,
-    Map
+    Map,
+    MessageSquare,
+    Send
 } from 'lucide-react';
 
 const getIcon = (type) => {
@@ -61,7 +64,7 @@ const getIcon = (type) => {
 
 export default function Dashboard() {
     const { currentProject, setCurrentProject } = useProject();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     const navigate = useNavigate();
 
     const [installations, setInstallations] = useState([]);
@@ -72,8 +75,70 @@ export default function Dashboard() {
     const [showBlueprints, setShowBlueprints] = useState(false);
     const [showTotalReport, setShowTotalReport] = useState(false);
     const [showDailyReport, setShowDailyReport] = useState(false);
+    const [showAnnouncements, setShowAnnouncements] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('all'); // all, tv, ap, chromecast, cloning, issue
+    const [unseenAnnouncements, setUnseenAnnouncements] = useState([]);
+    const [newAnnouncement, setNewAnnouncement] = useState('');
+
+    // Check for unseen announcements
+    useEffect(() => {
+        if (currentProject?.announcements) {
+            const seenIds = JSON.parse(localStorage.getItem(`seen_announcements_${currentProject.id}`) || '[]');
+            const unseen = currentProject.announcements.filter(a => !seenIds.includes(a.id));
+            setUnseenAnnouncements(unseen);
+        }
+    }, [currentProject]);
+
+    const handleMarkSeen = (announcementId) => {
+        const seenIds = JSON.parse(localStorage.getItem(`seen_announcements_${currentProject.id}`) || '[]');
+        if (!seenIds.includes(announcementId)) {
+            const newSeenIds = [...seenIds, announcementId];
+            localStorage.setItem(`seen_announcements_${currentProject.id}`, JSON.stringify(newSeenIds));
+
+            // Update local state
+            setUnseenAnnouncements(prev => prev.filter(a => a.id !== announcementId));
+        }
+    };
+
+    const handleMarkAllSeen = () => {
+        if (unseenAnnouncements.length > 0) {
+            const seenIds = JSON.parse(localStorage.getItem(`seen_announcements_${currentProject.id}`) || '[]');
+            const newIds = unseenAnnouncements.map(a => a.id);
+            const combinedIds = [...new Set([...seenIds, ...newIds])];
+            localStorage.setItem(`seen_announcements_${currentProject.id}`, JSON.stringify(combinedIds));
+            setUnseenAnnouncements([]);
+        }
+    };
+
+    const handlePostAnnouncement = async () => {
+        if (!newAnnouncement.trim()) return;
+
+        try {
+            const announcement = {
+                id: uuidv4(),
+                text: newAnnouncement,
+                author: user?.displayName || 'Unknown',
+                createdAt: new Date().toISOString()
+            };
+
+            const projectRef = doc(db, 'projects', currentProject.id);
+            await updateDoc(projectRef, {
+                announcements: arrayUnion(announcement)
+            });
+
+            setNewAnnouncement('');
+            // Optional: Mark as seen for the author immediately? 
+            // Let's keep it simple: Author also sees it as "new" unless we add logic, 
+            // but for now let's just let them see it or auto-mark it.
+            // Actually, better to auto-mark it for the author so they don't get a popup of their own message.
+            handleMarkSeen(announcement.id);
+
+        } catch (error) {
+            console.error("Error posting announcement:", error);
+            alert("Failed to post announcement");
+        }
+    };
 
     useEffect(() => {
         if (!currentProject) return;
@@ -312,7 +377,13 @@ export default function Dashboard() {
                         <h1 className="font-bold text-lg truncate max-w-[200px]">{currentProject.name}</h1>
                         <p className="text-xs text-muted-foreground">{currentProject.location}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-end gap-2 max-w-[200px] sm:max-w-none">
+                        <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} title="Team Chat" className="relative">
+                            <MessageSquare className="h-5 w-5" />
+                            {unseenAnnouncements.length > 0 && (
+                                <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse" />
+                            )}
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => setShowProjectInfo(true)} title="Project Info">
                             <Info className="h-5 w-5" />
                         </Button>
@@ -335,16 +406,104 @@ export default function Dashboard() {
                 </div>
             </header>
 
-            {/* Important Info Banner */}
-            {currentProject.importantInfo && (
-                <div className="bg-yellow-500/10 border-b border-yellow-500/20 p-4 animate-in slide-in-from-top-2 duration-300">
-                    <div className="max-w-md mx-auto flex gap-3">
-                        <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                            <h3 className="font-semibold text-sm text-yellow-700 dark:text-yellow-400">Important Announcement</h3>
-                            <p className="text-sm text-yellow-600/90 dark:text-yellow-500/90 leading-relaxed whitespace-pre-wrap">
-                                {currentProject.importantInfo}
-                            </p>
+            {/* Important Info Banner - REMOVED (Replaced by Announcements) */}
+
+            {/* Announcement Popup (Blocking) */}
+            {unseenAnnouncements.length > 0 && !showAnnouncements && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-background w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border-2 border-yellow-500">
+                        <div className="p-4 bg-yellow-500/10 border-b border-yellow-500/20 flex items-center gap-3">
+                            <div className="p-2 bg-yellow-500/20 rounded-full">
+                                <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-500" />
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-lg text-yellow-700 dark:text-yellow-400">New Announcements</h2>
+                                <p className="text-xs text-yellow-600/80 dark:text-yellow-500/80">Please acknowledge to continue</p>
+                            </div>
+                        </div>
+                        <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+                            {unseenAnnouncements.map((announcement) => (
+                                <div key={announcement.id} className="space-y-2">
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span className="font-semibold text-primary">{announcement.author}</span>
+                                        <span>{new Date(announcement.createdAt).toLocaleString()}</span>
+                                    </div>
+                                    <div className="p-4 bg-muted/50 rounded-lg text-sm leading-relaxed border">
+                                        {announcement.text}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="p-4 border-t bg-muted/30">
+                            <Button className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-semibold" onClick={handleMarkAllSeen}>
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                I have read and understood
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Announcements Modal (Chat View) */}
+            {showAnnouncements && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-background w-full max-w-md h-[80vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b flex items-center justify-between bg-muted/30">
+                            <h2 className="font-bold text-lg flex items-center gap-2">
+                                <MessageSquare className="h-5 w-5" /> Team Announcements
+                            </h2>
+                            <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(false)} className="rounded-full">
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {currentProject.announcements && currentProject.announcements.length > 0 ? (
+                                [...currentProject.announcements].reverse().map((announcement) => (
+                                    <div key={announcement.id} className={`flex flex-col ${announcement.author === user?.displayName ? 'items-end' : 'items-start'}`}>
+                                        <div className={`max-w-[85%] rounded-2xl p-3 ${announcement.author === user?.displayName
+                                                ? 'bg-primary text-primary-foreground rounded-tr-none'
+                                                : 'bg-muted rounded-tl-none'
+                                            }`}>
+                                            <p className="text-sm whitespace-pre-wrap">{announcement.text}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-1 px-1">
+                                            <span className="text-[10px] text-muted-foreground font-medium">{announcement.author}</span>
+                                            <span className="text-[10px] text-muted-foreground">•</span>
+                                            <span className="text-[10px] text-muted-foreground">
+                                                {new Date(announcement.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                                    <p>No announcements yet.</p>
+                                    <p className="text-xs">Be the first to post!</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-3 border-t bg-background">
+                            <div className="flex gap-2">
+                                <textarea
+                                    className="flex-1 min-h-[44px] max-h-32 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                                    placeholder="Type an announcement..."
+                                    rows={1}
+                                    value={newAnnouncement}
+                                    onChange={(e) => setNewAnnouncement(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handlePostAnnouncement();
+                                        }
+                                    }}
+                                />
+                                <Button size="icon" onClick={handlePostAnnouncement} disabled={!newAnnouncement.trim()}>
+                                    <Send className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
