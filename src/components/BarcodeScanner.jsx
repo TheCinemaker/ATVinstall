@@ -37,19 +37,25 @@ export default function BarcodeScanner({ onScan, onClose }) {
                         Html5QrcodeSupportedFormats.DATA_MATRIX
                     ];
 
-                    scanner = new Html5Qrcode("reader", { formatsToSupport });
+                    scanner = new Html5Qrcode("reader", {
+                        formatsToSupport,
+                        verbose: true // Enable logging to debug
+                    });
                     scannerRef.current = scanner;
 
                     await scanner.start(
                         cameraId,
                         {
-                            fps: 15,
+                            fps: 20, // Increased FPS for faster scanning
                             qrbox: { width: 300, height: 150 }, // Wider box for 1D codes
-                            // aspectRatio: 1.0 // Remove to use native camera ratio
+                            disableFlip: false, // Try both orientations
+                            videoConstraints: {
+                                facingMode: "environment" // Prefer back camera
+                            }
                         },
                         (decodedText) => {
                             // Success
-                            console.log("Scan success:", decodedText);
+                            console.log("✅ Scan success:", decodedText);
                             if (isScanningRef.current) {
                                 isScanningRef.current = false;
                                 onScan(decodedText);
@@ -60,7 +66,10 @@ export default function BarcodeScanner({ onScan, onClose }) {
                             }
                         },
                         (errorMessage) => {
-                            // Ignore scan errors, they happen every frame
+                            // Log errors occasionally to debug
+                            if (Math.random() < 0.01) { // Log 1% of errors to avoid spam
+                                console.log("Scanning...", errorMessage);
+                            }
                         }
                     );
                     isScanningRef.current = true;
