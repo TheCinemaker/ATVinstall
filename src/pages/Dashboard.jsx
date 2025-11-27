@@ -459,37 +459,46 @@ export default function Dashboard() {
 
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {currentProject.announcements && currentProject.announcements.length > 0 ? (
-                                [...currentProject.announcements].reverse().map((announcement) => (
-                                    <div key={announcement.id} className={`flex flex-col ${announcement.author === user?.displayName ? 'items-end' : 'items-start'}`}>
-                                        <div className={`max-w-[85%] rounded-2xl p-3 ${announcement.author === user?.displayName
-                                                ? 'bg-primary text-primary-foreground rounded-tr-none'
-                                                : 'bg-muted rounded-tl-none'
-                                            }`}>
-                                            <p className="text-sm whitespace-pre-wrap">{announcement.text}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-1 px-1">
-                                            <span className="text-[10px] text-muted-foreground font-medium">{announcement.author}</span>
-                                            <span className="text-[10px] text-muted-foreground">•</span>
-                                            <span className="text-[10px] text-muted-foreground">
-                                                {new Date(announcement.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))
+                                <div className="flex flex-col gap-4">
+                                    {[...currentProject.announcements].reverse().map((announcement) => {
+                                        const isMe = announcement.author === (user?.displayName || 'Unknown');
+                                        return (
+                                            <div key={announcement.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                                                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isMe ? 'bg-primary text-primary-foreground' : 'bg-muted-foreground/20 text-muted-foreground'
+                                                    }`}>
+                                                    {announcement.author.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className={`flex flex-col max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-xs font-semibold text-foreground">{announcement.author}</span>
+                                                        <span className="text-[10px] text-muted-foreground">
+                                                            {new Date(announcement.createdAt).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                    <div className={`rounded-2xl px-4 py-2 text-sm shadow-sm ${isMe
+                                                        ? 'bg-primary text-primary-foreground rounded-tr-none'
+                                                        : 'bg-muted text-foreground rounded-tl-none'
+                                                        }`}>
+                                                        <p className="whitespace-pre-wrap leading-relaxed">{announcement.text}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             ) : (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                                    <p>No announcements yet.</p>
-                                    <p className="text-xs">Be the first to post!</p>
+                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50">
+                                    <MessageSquare className="h-12 w-12 mb-2" />
+                                    <p>No messages yet</p>
                                 </div>
                             )}
                         </div>
 
                         <div className="p-3 border-t bg-background">
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 items-end">
                                 <textarea
-                                    className="flex-1 min-h-[44px] max-h-32 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                                    placeholder="Type an announcement..."
+                                    className="flex-1 min-h-[44px] max-h-32 rounded-2xl border border-input bg-muted/50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none transition-all"
+                                    placeholder="Type a message..."
                                     rows={1}
                                     value={newAnnouncement}
                                     onChange={(e) => setNewAnnouncement(e.target.value)}
@@ -500,8 +509,8 @@ export default function Dashboard() {
                                         }
                                     }}
                                 />
-                                <Button size="icon" onClick={handlePostAnnouncement} disabled={!newAnnouncement.trim()}>
-                                    <Send className="h-4 w-4" />
+                                <Button size="icon" className="rounded-full h-11 w-11 shrink-0 shadow-sm" onClick={handlePostAnnouncement} disabled={!newAnnouncement.trim()}>
+                                    <Send className="h-5 w-5" />
                                 </Button>
                             </div>
                         </div>
