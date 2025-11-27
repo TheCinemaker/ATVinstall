@@ -1,110 +1,76 @@
 import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import Quagga from '@ericblade/quagga2';
 import { Button } from './ui/button';
-import { X, Camera, ScanBarcode } from 'lucide-react';
+import { X, Camera } from 'lucide-react';
 
 export default function BarcodeScanner({ onScan, onClose }) {
     const [error, setError] = useState(null);
     const [scanning, setScanning] = useState(false);
-    const [cameraStarted, setCameraStarted] = useState(false);
     const scannerRef = useRef(null);
+    const detectedRef = useRef(false);
 
     useEffect(() => {
-        let scanner = null;
-
-        const startCamera = async () => {
-            try {
-                // Get Cameras
-                const devices = await Html5Qrcode.getCameras();
-                if (devices && devices.length) {
-                    // Prefer back camera
-                    const backCamera = devices.find(d =>
-                        d.label.toLowerCase().includes('back') ||
-                        d.label.toLowerCase().includes('environment')
-                    );
-                    const cameraId = backCamera ? backCamera.id : devices[0].id;
-
-                    // Enable all common formats
-                    const formatsToSupport = [
-                        Html5QrcodeSupportedFormats.QR_CODE,
-                        Html5QrcodeSupportedFormats.CODE_128,
-                        Html5QrcodeSupportedFormats.CODE_39,
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E,
-                        Html5QrcodeSupportedFormats.DATA_MATRIX
-                    ];
-
-                    scanner = new Html5Qrcode("reader", {
-                        formatsToSupport,
-                        verbose: false
-                    });
-                    scannerRef.current = scanner;
-
-                    // Start camera preview (no scanning yet)
-                    await scanner.start(
-                        cameraId,
-                        {
-                            fps: 10,
-                            qrbox: { width: 300, height: 150 },
-                            videoConstraints: {
-                                facingMode: "environment"
-                            }
-                        },
-                        () => { }, // No continuous scanning
-                        () => { }
-                    );
-
-                    setCameraStarted(true);
-                } else {
-                    setError("No cameras found.");
+        const initScanner = () => {
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: scannerRef.current,
+                    constraints: {
+                        facingMode: "environment",
+                        width: { min: 640 },
+                        height: { min: 480 }
+                    }
+                },
+                decoder: {
+                    readers: [
+                        "code_128_reader",
+                        "code_39_reader",
+                        "ean_reader",
+                        "ean_8_reader",
+                        "upc_reader",
+                        "upc_e_reader"
+                    ]
+                },
+                locate: true,
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true
+                },
+                numOfWorkers: 2,
+                frequency: 10
+            }, (err) => {
+                if (err) {
+                    console.error("Quagga init error:", err);
+                    setError("Failed to start camera. Please grant camera permissions.");
+                    return;
                 }
-            } catch (err) {
-                console.error("Camera start error:", err);
-                setError("Camera access denied. Please grant camera permissions.");
-            }
+
+                console.log("Quagga initialized");
+                Quagga.start();
+                setScanning(true);
+            });
+
+            Quagga.onDetected((result) => {
+                if (detectedRef.current) return; // Prevent multiple detections
+
+                const code = result.codeResult.code;
+                console.log("✅ Barcode detected:", code);
+
+                detectedRef.current = true;
+                Quagga.stop();
+                onScan(code);
+                onClose();
+            });
         };
 
-        startCamera();
+        initScanner();
 
         return () => {
-            if (scannerRef.current) {
-                scannerRef.current.stop().catch(() => { }).finally(() => {
-                    if (scannerRef.current) {
-                        scannerRef.current.clear().catch(() => { });
-                    }
-                });
-            }
+            Quagga.stop();
+            Quagga.offDetected();
         };
-    }, []);
-
-    const handleCapture = async () => {
-        if (!scannerRef.current || scanning) return;
-
-        setScanning(true);
-        try {
-            // Scan current frame
-            const result = await scannerRef.current.scanFile(
-                document.querySelector('#reader video'),
-                false
-            );
-
-            console.log("✅ Scan success:", result);
-
-            // Stop camera
-            await scannerRef.current.stop();
-            await scannerRef.current.clear();
-
-            // Return result
-            onScan(result);
-            onClose();
-        } catch (err) {
-            console.log("Scan failed:", err);
-            setError("Could not read barcode. Try again or adjust position.");
-            setScanning(false);
-        }
-    };
+    }, [onScan, onClose]);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
@@ -125,36 +91,21 @@ export default function BarcodeScanner({ onScan, onClose }) {
                             <p className="text-sm opacity-80">{error}</p>
                         </div>
                     ) : (
-                        <div id="reader" className="w-full h-full"></div>
-                    )}
-
-                    {/* Overlay Guide */}
-                    {!error && (
-                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                            <div className="w-80 h-40 border-2 border-primary/70 rounded-lg relative bg-primary/5">
-                                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-primary"></div>
-                                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-primary"></div>
-                                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-primary"></div>
-                                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-primary"></div>
-                                <p className="absolute bottom-[-40px] left-0 right-0 text-center text-sm text-white">
-                                    Align barcode within frame
-                                </p>
-                            </div>
-                        </div>
+                        <>
+                            <div ref={scannerRef} className="w-full h-full" />
+                            {scanning && (
+                                <div className="absolute bottom-4 left-0 right-0 text-center">
+                                    <p className="text-white text-sm bg-black/50 inline-block px-4 py-2 rounded-full">
+                                        Scanning... Point at barcode
+                                    </p>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
                 <div className="p-4 flex gap-2 shrink-0 bg-background">
-                    <Button
-                        variant="default"
-                        className="flex-1"
-                        onClick={handleCapture}
-                        disabled={!cameraStarted || scanning}
-                    >
-                        <ScanBarcode className="h-4 w-4 mr-2" />
-                        {scanning ? "Scanning..." : "Capture & Scan"}
-                    </Button>
-                    <Button variant="secondary" onClick={onClose}>
+                    <Button variant="secondary" onClick={onClose} className="w-full">
                         Cancel
                     </Button>
                 </div>
