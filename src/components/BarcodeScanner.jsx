@@ -43,9 +43,9 @@ export default function BarcodeScanner({ onScan, onClose }) {
                     await scanner.start(
                         cameraId,
                         {
-                            fps: 10,
-                            qrbox: { width: 250, height: 250 },
-                            aspectRatio: 1.0
+                            fps: 15,
+                            qrbox: { width: 300, height: 150 }, // Wider box for 1D codes
+                            // aspectRatio: 1.0 // Remove to use native camera ratio
                         },
                         (decodedText) => {
                             // Success
@@ -100,9 +100,9 @@ export default function BarcodeScanner({ onScan, onClose }) {
             await scannerRef.current.start(
                 nextCameraId,
                 {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
+                    fps: 15,
+                    qrbox: { width: 300, height: 150 },
+                    // aspectRatio: 1.0
                 },
                 (decodedText) => {
                     if (isScanningRef.current) {
