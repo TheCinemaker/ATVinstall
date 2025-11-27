@@ -25,7 +25,19 @@ export default function BarcodeScanner({ onScan, onClose }) {
                     setActiveCameraId(cameraId);
 
                     // 2. Start Scanner
-                    scanner = new Html5Qrcode("reader");
+                    // Enable all common formats
+                    const formatsToSupport = [
+                        Html5QrcodeSupportedFormats.QR_CODE,
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E,
+                        Html5QrcodeSupportedFormats.DATA_MATRIX
+                    ];
+
+                    scanner = new Html5Qrcode("reader", { formatsToSupport });
                     scannerRef.current = scanner;
 
                     await scanner.start(
