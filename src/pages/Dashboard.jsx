@@ -36,8 +36,7 @@ import {
     MoreHorizontal,
     Info,
     Phone,
-    Map,
-    AlertTriangle
+    Map
 } from 'lucide-react';
 
 const getIcon = (type) => {
