@@ -36,7 +36,8 @@ import {
     MoreHorizontal,
     Info,
     Phone,
-    Map
+    Map,
+    AlertTriangle
 } from 'lucide-react';
 
 const getIcon = (type) => {
@@ -334,6 +335,21 @@ export default function Dashboard() {
                     </div>
                 </div>
             </header>
+
+            {/* Important Info Banner */}
+            {currentProject.importantInfo && (
+                <div className="bg-yellow-500/10 border-b border-yellow-500/20 p-4 animate-in slide-in-from-top-2 duration-300">
+                    <div className="max-w-md mx-auto flex gap-3">
+                        <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                            <h3 className="font-semibold text-sm text-yellow-700 dark:text-yellow-400">Important Announcement</h3>
+                            <p className="text-sm text-yellow-600/90 dark:text-yellow-500/90 leading-relaxed whitespace-pre-wrap">
+                                {currentProject.importantInfo}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Project Info Modal */}
             {showProjectInfo && (

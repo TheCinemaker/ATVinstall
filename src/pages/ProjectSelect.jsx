@@ -3,7 +3,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Plus, Building2, Calendar, ChevronRight, Wand2, Eraser, Users, X, UserPlus, Trash2, Download, Edit, Target, Search } from 'lucide-react';
+import { Plus, Building2, Calendar, ChevronRight, Wand2, Eraser, Users, X, UserPlus, Trash2, Download, Edit, Target, Search, AlertTriangle } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { db } from '../firebase';
@@ -47,6 +47,7 @@ export default function ProjectSelect() {
     const [newContactName, setNewContactName] = useState('');
     const [newContactPhone, setNewContactPhone] = useState('');
     const [blueprints, setBlueprints] = useState([]);
+    const [importantInfo, setImportantInfo] = useState('');
     const [authPin, setAuthPin] = useState('');
     const [newProjectPin, setNewProjectPin] = useState('');
     // Clear PIN when opening the create form
@@ -186,6 +187,7 @@ export default function ProjectSelect() {
             devices: deviceTypes,
             contacts: contacts,
             blueprints: blueprints,
+            importantInfo: importantInfo,
             updatedAt: new Date().toISOString()
         };
 
@@ -224,6 +226,7 @@ export default function ProjectSelect() {
         setDeviceTypes([]);
         setContacts([]);
         setBlueprints([]);
+        setImportantInfo('');
         setNewDevice('');
         setNewContactName('');
         setNewContactPhone('');
@@ -256,6 +259,11 @@ export default function ProjectSelect() {
             setTargetAp(p.targets?.ap || 0);
             setRoomListText(p.rooms ? p.rooms.join('\n') : '');
             setTeamMembers(p.team || []);
+            setProjectManager(p.manager || '');
+            setDeviceTypes(p.devices || []);
+            setContacts(p.contacts || []);
+            setBlueprints(p.blueprints || []);
+            setImportantInfo(p.importantInfo || '');
 
             setEditingProjectId(p.id);
             setIsEditing(true);
