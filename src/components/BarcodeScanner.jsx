@@ -1,30 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Button } from './ui/button';
-import { X, Camera, RefreshCw } from 'lucide-react';
+import { X, Camera, ScanBarcode } from 'lucide-react';
 
 export default function BarcodeScanner({ onScan, onClose }) {
     const [error, setError] = useState(null);
-    const [cameras, setCameras] = useState([]);
-    const [activeCameraId, setActiveCameraId] = useState(null);
+    const [scanning, setScanning] = useState(false);
+    const [cameraStarted, setCameraStarted] = useState(false);
     const scannerRef = useRef(null);
-    const isScanningRef = useRef(false);
 
     useEffect(() => {
         let scanner = null;
 
-        const startScanning = async () => {
+        const startCamera = async () => {
             try {
-                // 1. Get Cameras
+                // Get Cameras
                 const devices = await Html5Qrcode.getCameras();
                 if (devices && devices.length) {
-                    setCameras(devices);
-                    // Prefer back camera if available
-                    const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
+                    // Prefer back camera
+                    const backCamera = devices.find(d =>
+                        d.label.toLowerCase().includes('back') ||
+                        d.label.toLowerCase().includes('environment')
+                    );
                     const cameraId = backCamera ? backCamera.id : devices[0].id;
-                    setActiveCameraId(cameraId);
 
-                    // 2. Start Scanner
                     // Enable all common formats
                     const formatsToSupport = [
                         Html5QrcodeSupportedFormats.QR_CODE,
@@ -39,96 +38,71 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
                     scanner = new Html5Qrcode("reader", {
                         formatsToSupport,
-                        verbose: true // Enable logging to debug
+                        verbose: false
                     });
                     scannerRef.current = scanner;
 
+                    // Start camera preview (no scanning yet)
                     await scanner.start(
                         cameraId,
                         {
-                            fps: 20, // Increased FPS for faster scanning
-                            qrbox: { width: 300, height: 150 }, // Wider box for 1D codes
-                            disableFlip: false, // Try both orientations
+                            fps: 10,
+                            qrbox: { width: 300, height: 150 },
                             videoConstraints: {
-                                facingMode: "environment" // Prefer back camera
+                                facingMode: "environment"
                             }
                         },
-                        (decodedText) => {
-                            // Success
-                            console.log("✅ Scan success:", decodedText);
-                            if (isScanningRef.current) {
-                                isScanningRef.current = false;
-                                onScan(decodedText);
-                                scanner.stop().then(() => {
-                                    scanner.clear();
-                                    onClose();
-                                }).catch(err => console.error("Stop failed", err));
-                            }
-                        },
-                        (errorMessage) => {
-                            // Log errors occasionally to debug
-                            if (Math.random() < 0.01) { // Log 1% of errors to avoid spam
-                                console.log("Scanning...", errorMessage);
-                            }
-                        }
+                        () => { }, // No continuous scanning
+                        () => { }
                     );
-                    isScanningRef.current = true;
+
+                    setCameraStarted(true);
                 } else {
                     setError("No cameras found.");
                 }
             } catch (err) {
                 console.error("Camera start error:", err);
-                setError("Camera access denied or error starting camera. Please ensure you have granted camera permissions.");
+                setError("Camera access denied. Please grant camera permissions.");
             }
         };
 
-        startScanning();
+        startCamera();
 
         return () => {
-            isScanningRef.current = false;
             if (scannerRef.current) {
-                scannerRef.current.stop().then(() => {
-                    scannerRef.current.clear();
-                }).catch(err => {
-                    // Ignore stop errors on unmount
+                scannerRef.current.stop().catch(() => { }).finally(() => {
+                    if (scannerRef.current) {
+                        scannerRef.current.clear().catch(() => { });
+                    }
                 });
             }
         };
-    }, []); // Run once on mount
+    }, []);
 
-    const switchCamera = async () => {
-        if (cameras.length < 2 || !scannerRef.current) return;
+    const handleCapture = async () => {
+        if (!scannerRef.current || scanning) return;
 
-        const currentIndex = cameras.findIndex(c => c.id === activeCameraId);
-        const nextIndex = (currentIndex + 1) % cameras.length;
-        const nextCameraId = cameras[nextIndex].id;
-
+        setScanning(true);
         try {
-            await scannerRef.current.stop();
-            setActiveCameraId(nextCameraId);
-            await scannerRef.current.start(
-                nextCameraId,
-                {
-                    fps: 15,
-                    qrbox: { width: 300, height: 150 },
-                    // aspectRatio: 1.0
-                },
-                (decodedText) => {
-                    if (isScanningRef.current) {
-                        isScanningRef.current = false;
-                        onScan(decodedText);
-                        scannerRef.current.stop().then(() => {
-                            scannerRef.current.clear();
-                            onClose();
-                        });
-                    }
-                },
-                () => { }
+            // Scan current frame
+            const result = await scannerRef.current.scanFile(
+                document.querySelector('#reader video'),
+                false
             );
-            isScanningRef.current = true;
+
+            console.log("✅ Scan success:", result);
+
+            // Stop camera
+            await scannerRef.current.stop();
+            await scannerRef.current.clear();
+
+            // Return result
+            onScan(result);
+            onClose();
         } catch (err) {
-            console.error("Switch camera failed", err);
-            setError("Failed to switch camera.");
+            console.log("Scan failed:", err);
+            setError("Could not read barcode. Try again or adjust position.");
+            setScanning(false);
         }
     };
 
@@ -144,10 +118,10 @@ export default function BarcodeScanner({ onScan, onClose }) {
                     </Button>
                 </div>
 
-                <div className="relative bg-black flex-1 flex items-center justify-center min-h-[300px]">
+                <div className="relative bg-black flex-1 flex items-center justify-center min-h-[400px]">
                     {error ? (
                         <div className="text-center p-6 text-destructive">
-                            <p className="font-medium mb-2">Camera Error</p>
+                            <p className="font-medium mb-2">Error</p>
                             <p className="text-sm opacity-80">{error}</p>
                         </div>
                     ) : (
@@ -156,24 +130,31 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
                     {/* Overlay Guide */}
                     {!error && (
-                        <div className="absolute inset-0 pointer-events-none border-[50px] border-black/50 flex items-center justify-center">
-                            <div className="w-64 h-64 border-2 border-red-500/50 rounded-lg relative">
-                                <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-red-500"></div>
-                                <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-red-500"></div>
-                                <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-red-500"></div>
-                                <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-red-500"></div>
+                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                            <div className="w-80 h-40 border-2 border-primary/70 rounded-lg relative bg-primary/5">
+                                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-primary"></div>
+                                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-primary"></div>
+                                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-primary"></div>
+                                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-primary"></div>
+                                <p className="absolute bottom-[-40px] left-0 right-0 text-center text-sm text-white">
+                                    Align barcode within frame
+                                </p>
                             </div>
                         </div>
                     )}
                 </div>
 
                 <div className="p-4 flex gap-2 shrink-0 bg-background">
-                    {cameras.length > 1 && (
-                        <Button variant="outline" className="flex-1" onClick={switchCamera}>
-                            <RefreshCw className="h-4 w-4 mr-2" /> Switch Camera
-                        </Button>
-                    )}
-                    <Button variant="secondary" onClick={onClose} className="flex-1">
+                    <Button
+                        variant="default"
+                        className="flex-1"
+                        onClick={handleCapture}
+                        disabled={!cameraStarted || scanning}
+                    >
+                        <ScanBarcode className="h-4 w-4 mr-2" />
+                        {scanning ? "Scanning..." : "Capture & Scan"}
+                    </Button>
+                    <Button variant="secondary" onClick={onClose}>
                         Cancel
                     </Button>
                 </div>
