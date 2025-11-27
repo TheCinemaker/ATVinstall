@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { X, Calendar, User, MapPin, Hash, Router, Image as ImageIcon, AlertTriangle, FileText, CheckCircle2, Plus, Loader2, Edit, Save } from 'lucide-react';
+import { X, Calendar, User, MapPin, Hash, Router, Image as ImageIcon, AlertTriangle, FileText, CheckCircle2, Plus, Loader2, Edit, Save, ScanBarcode } from 'lucide-react';
 import { Button } from './ui/button';
 import ImageUpload from './ImageUpload';
+import BarcodeScanner from './BarcodeScanner';
 import { useProject } from '../contexts/ProjectContext';
 import { db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -20,6 +21,23 @@ export default function ActivityDetailModal({ activity, onClose }) {
     const [editLocation, setEditLocation] = useState(activity?.locationId || activity?.location || '');
     const [editDescription, setEditDescription] = useState(activity?.notes || activity?.description || activity?.issueDescription || '');
     const [editInstaller, setEditInstaller] = useState(activity?.installerName || activity?.installer || activity?.reportedBy || '');
+
+    // Scanner State
+    const [showScanner, setShowScanner] = useState(false);
+    const [scanTarget, setScanTarget] = useState(null); // 'serial' or 'mac'
+
+    const handleScan = (result) => {
+        if (scanTarget === 'serial') {
+            setEditSerial(result);
+        } else if (scanTarget === 'mac') {
+            setEditMac(result);
+        }
+    };
+
+    const startScan = (target) => {
+        setScanTarget(target);
+        setShowScanner(true);
+    };
 
     if (!activity) return null;
 
@@ -189,6 +207,34 @@ export default function ActivityDetailModal({ activity, onClose }) {
                                             <Plus className="h-4 w-4 mr-2" />
                                             Add Another Photo
                                         </Button>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-xs text-gray-400">Serial Number</p>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                className="flex-1 rounded-md border border-input bg-gray-900/50 text-white px-2 py-1 text-sm"
+                                                value={editSerial}
+                                                onChange={(e) => setEditSerial(e.target.value)}
+                                            />
+                                            <Button type="button" variant="secondary" size="icon" className="h-8 w-8" onClick={() => startScan('serial')}>
+                                                <ScanBarcode className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-xs text-gray-400">MAC Address</p>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                className="flex-1 rounded-md border border-input bg-gray-900/50 text-white px-2 py-1 text-sm"
+                                                value={editMac}
+                                                onChange={(e) => setEditMac(e.target.value)}
+                                            />
+                                            <Button type="button" variant="secondary" size="icon" className="h-8 w-8" onClick={() => startScan('mac')}>
+                                                <ScanBarcode className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -386,6 +432,12 @@ export default function ActivityDetailModal({ activity, onClose }) {
                     )}
                 </div>
             </div>
+            {showScanner && (
+                <BarcodeScanner
+                    onScan={handleScan}
+                    onClose={() => setShowScanner(false)}
+                />
+            )}
         </div>
     );
 }

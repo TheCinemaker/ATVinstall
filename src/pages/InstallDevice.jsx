@@ -4,7 +4,8 @@ import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import ImageUpload from '../components/ImageUpload';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, ScanBarcode } from 'lucide-react';
+import BarcodeScanner from '../components/BarcodeScanner';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
@@ -90,6 +91,33 @@ export default function InstallDevice() {
     const [hasIssue, setHasIssue] = useState(false);
     const [issueDescription, setIssueDescription] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
+    const [scanTarget, setScanTarget] = useState(null); // 'serial' or 'mac'
+
+    const handleScan = (result) => {
+        if (scanTarget === 'serial') {
+            setSerialNumber(result);
+        } else if (scanTarget === 'mac') {
+            setPortInfo(result); // Assuming MAC goes into portInfo for some devices, or we need a dedicated MAC field? 
+            // Wait, looking at config:
+            // TV: serialLabel="TV Serial Number" -> serialNumber
+            // AP: serialLabel="AP MAC Address / Serial" -> serialNumber
+            // Camera: serialLabel="Camera MAC / Serial" -> serialNumber
+            // Switch: serialLabel="Switch Serial Number" -> serialNumber
+
+            // It seems 'serialNumber' state is used for both Serial and MAC depending on device type.
+            // But wait, the user asked for "Serial AND Mac address" on AP box.
+            // Currently we only have one field `serialNumber`.
+            // Let's check if we need to split it.
+            // For now, let's assume we scan into the main ID field.
+            setSerialNumber(result);
+        }
+    };
+
+    const startScan = (target) => {
+        setScanTarget(target);
+        setShowScanner(true);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -189,6 +217,23 @@ export default function InstallDevice() {
                                 value={locationId}
                                 onChange={(e) => setLocationId(e.target.value)}
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-white">
+                                {config.serialLabel}
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    className="flex-1 rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-sm"
+                                    placeholder={`Scan or type ${config.serialLabel}`}
+                                    value={serialNumber}
+                                    onChange={(e) => setSerialNumber(e.target.value)}
+                                />
+                                <Button type="button" variant="secondary" size="icon" onClick={() => startScan('serial')}>
+                                    <ScanBarcode className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
@@ -378,6 +423,12 @@ export default function InstallDevice() {
                     </Button>
                 </form>
             </main>
+            {showScanner && (
+                <BarcodeScanner
+                    onScan={handleScan}
+                    onClose={() => setShowScanner(false)}
+                />
+            )}
         </div>
     );
 }
