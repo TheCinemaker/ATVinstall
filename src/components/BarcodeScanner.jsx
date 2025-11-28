@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import Quagga from '@ericblade/quagga2';
 import { Button } from './ui/button';
-import { X, Camera } from 'lucide-react';
+import { X, Camera, Check } from 'lucide-react';
 
 export default function BarcodeScanner({ onScan, onClose }) {
     const [error, setError] = useState(null);
     const [scanning, setScanning] = useState(false);
+    const [detectedCode, setDetectedCode] = useState(null);
     const scannerRef = useRef(null);
     const detectedRef = useRef(false);
+    const lastDetectionTime = useRef(0);
 
     useEffect(() => {
         const initScanner = () => {
@@ -38,7 +40,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
                     halfSample: true
                 },
                 numOfWorkers: 2,
-                frequency: 10
+                frequency: 5 // Reduced from 10 to slow down scanning
             }, (err) => {
                 if (err) {
                     console.error("Quagga init error:", err);
@@ -52,15 +54,24 @@ export default function BarcodeScanner({ onScan, onClose }) {
             });
 
             Quagga.onDetected((result) => {
-                if (detectedRef.current) return; // Prevent multiple detections
+                if (detectedRef.current) return; // Already detected something
+
+                const now = Date.now();
+                // Require 1.5 seconds between detections to avoid rapid-fire scanning
+                if (now - lastDetectionTime.current < 1500) {
+                    return;
+                }
 
                 const code = result.codeResult.code;
                 console.log("✅ Barcode detected:", code);
 
+                lastDetectionTime.current = now;
                 detectedRef.current = true;
-                Quagga.stop();
-                onScan(code);
-                onClose();
+
+                // Pause scanning and show confirmation
+                Quagga.pause();
+                setDetectedCode(code);
+                setScanning(false);
             });
         };
 
@@ -70,7 +81,20 @@ export default function BarcodeScanner({ onScan, onClose }) {
             Quagga.stop();
             Quagga.offDetected();
         };
-    }, [onScan, onClose]);
+    }, []);
+
+    const handleConfirm = () => {
+        Quagga.stop();
+        onScan(detectedCode);
+        onClose();
+    };
+
+    const handleRetry = () => {
+        setDetectedCode(null);
+        detectedRef.current = false;
+        Quagga.start();
+        setScanning(true);
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
@@ -93,7 +117,27 @@ export default function BarcodeScanner({ onScan, onClose }) {
                     ) : (
                         <>
                             <div ref={scannerRef} className="w-full h-full" />
-                            {scanning && (
+
+                            {/* Detected Code Overlay */}
+                            {detectedCode && (
+                                <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-6">
+                                    <div className="bg-background rounded-lg p-6 max-w-sm w-full text-center">
+                                        <Check className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                                        <p className="text-sm text-muted-foreground mb-2">Detected Code:</p>
+                                        <p className="text-2xl font-bold mb-6 font-mono">{detectedCode}</p>
+                                        <div className="flex gap-2">
+                                            <Button variant="outline" onClick={handleRetry} className="flex-1">
+                                                Wrong Code
+                                            </Button>
+                                            <Button onClick={handleConfirm} className="flex-1">
+                                                Use This
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {scanning && !detectedCode && (
                                 <div className="absolute bottom-4 left-0 right-0 text-center">
                                     <p className="text-white text-sm bg-black/50 inline-block px-4 py-2 rounded-full">
                                         Scanning... Point at barcode
