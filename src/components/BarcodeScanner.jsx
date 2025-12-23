@@ -114,7 +114,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
                     </Button>
                 </div>
 
-                <div className="relative bg-black flex-1 flex items-center justify-center min-h-[400px]">
+                <div className="relative bg-black flex-1 flex items-center justify-center min-h-[400px] overflow-hidden">
                     {error ? (
                         <div className="text-center p-6 text-destructive">
                             <p className="font-medium mb-2">Error</p>
@@ -122,7 +122,10 @@ export default function BarcodeScanner({ onScan, onClose }) {
                         </div>
                     ) : (
                         <>
-                            <div ref={scannerRef} className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full" />
+                            <div
+                                ref={scannerRef}
+                                className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover [&_canvas]:w-full [&_canvas]:h-full [&_canvas]:object-cover"
+                            />
 
                             {/* Scanning Zone Guide (Laser) */}
                             {scanning && !detectedCode && (
