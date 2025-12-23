@@ -14,6 +14,34 @@ export function ProjectProvider({ children }) {
         return saved ? JSON.parse(saved) : null;
     });
 
+    // Realtime listener for the current project
+    useEffect(() => {
+        if (!currentProject?.id) return;
+
+        const projectRef = doc(db, 'projects', currentProject.id);
+        const unsubscribe = onSnapshot(projectRef, (doc) => {
+            if (doc.exists()) {
+                const projectData = { id: doc.id, ...doc.data() };
+                // Only update if there are changes to avoid loop, though React handles strict equality checks usually.
+                // We mainly want to catch new announcements or team changes.
+                // To avoid conflict with local optimistic updates (if any), we just replace the state.
+                // But we need to make sure we don't overwrite if we are in the middle of a switch.
+
+                // Simple JSON comparison to avoid unnecessary re-renders/loops if data hasn't actually changed
+                // (though onSnapshot usually fires only on change).
+                setCurrentProject(prev => {
+                    if (JSON.stringify(prev) !== JSON.stringify(projectData)) {
+                        return projectData;
+                    }
+                    return prev;
+                });
+            }
+        });
+
+        return () => unsubscribe();
+    }, [currentProject?.id]); // Only re-subscribe if ID changes
+
+    // Persist to local storage
     useEffect(() => {
         if (currentProject) {
             localStorage.setItem('currentProject', JSON.stringify(currentProject));

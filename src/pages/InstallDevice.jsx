@@ -411,16 +411,21 @@ export default function InstallDevice() {
                         </div>
                     </div>
 
-                    <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                        {loading ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Saving...
-                            </>
-                        ) : (
-                            'Save Installation'
-                        )}
-                    </Button>
+                    <div className="flex gap-3">
+                        <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/dashboard')} disabled={loading}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" className="flex-1" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                'Save'
+                            )}
+                        </Button>
+                    </div>
                 </form>
             </main>
             {showScanner && (

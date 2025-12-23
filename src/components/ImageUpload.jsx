@@ -121,7 +121,6 @@ export default function ImageUpload({ onImageCapture, label = "Take Photo", curr
                     type="file"
                     ref={fileInputRef}
                     accept="image/*"
-                    capture="environment"
                     className="hidden"
                     onChange={handleFileSelect}
                     disabled={processing}
