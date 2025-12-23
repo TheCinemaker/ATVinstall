@@ -22,6 +22,12 @@ export default function BarcodeScanner({ onScan, onClose }) {
                         facingMode: "environment",
                         width: { min: 640 },
                         height: { min: 480 }
+                    },
+                    area: { // Restrict detection to the center 30% of the screen height
+                        top: "35%",
+                        bottom: "35%",
+                        left: "10%",
+                        right: "10%"
                     }
                 },
                 decoder: {
@@ -118,6 +124,21 @@ export default function BarcodeScanner({ onScan, onClose }) {
                         <>
                             <div ref={scannerRef} className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full" />
 
+                            {/* Scanning Zone Guide (Laser) */}
+                            {scanning && !detectedCode && (
+                                <>
+                                    {/* Center Box Guide */}
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[30%] border-2 border-red-500/30 rounded-lg pointer-events-none shadow-[0_0_20px_rgba(255,0,0,0.2)]"></div>
+                                    {/* Laser Line */}
+                                    <div className="absolute top-1/2 left-[10%] right-[10%] h-[2px] bg-red-600 shadow-[0_0_8px_rgba(255,0,0,0.9)] -translate-y-1/2 pointer-events-none animate-pulse"></div>
+                                    <div className="absolute top-[30%] left-0 right-0 text-center pointer-events-none">
+                                        <p className="text-red-500 font-bold text-xs uppercase tracking-widest shadow-black drop-shadow-md">
+                                            Align code here
+                                        </p>
+                                    </div>
+                                </>
+                            )}
+
                             {/* Detected Code Overlay */}
                             {detectedCode && (
                                 <div className="absolute inset-0 z-30 bg-black/80 flex items-center justify-center p-6">
@@ -140,7 +161,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
                             {scanning && !detectedCode && (
                                 <div className="absolute bottom-4 left-0 right-0 text-center z-10">
                                     <p className="text-white text-sm bg-black/50 inline-block px-4 py-2 rounded-full">
-                                        Scanning... Point at barcode
+                                        Scanning...
                                     </p>
                                 </div>
                             )}
