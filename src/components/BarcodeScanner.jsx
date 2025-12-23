@@ -99,11 +99,11 @@ export default function BarcodeScanner({ onScan, onClose }) {
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-background w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative flex flex-col max-h-[90vh]">
-                <div className="p-4 border-b flex items-center justify-between bg-muted/30 shrink-0">
+                <div className="p-4 border-b flex items-center justify-between bg-muted/30 shrink-0 relative z-20">
                     <h2 className="font-bold text-lg flex items-center gap-2">
                         <Camera className="h-5 w-5" /> Scan Barcode
                     </h2>
-                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+                    <Button type="button" variant="ghost" size="icon" onClick={onClose} className="rounded-full">
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
@@ -116,20 +116,20 @@ export default function BarcodeScanner({ onScan, onClose }) {
                         </div>
                     ) : (
                         <>
-                            <div ref={scannerRef} className="w-full h-full" />
+                            <div ref={scannerRef} className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full" />
 
                             {/* Detected Code Overlay */}
                             {detectedCode && (
-                                <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-6">
+                                <div className="absolute inset-0 z-30 bg-black/80 flex items-center justify-center p-6">
                                     <div className="bg-background rounded-lg p-6 max-w-sm w-full text-center">
                                         <Check className="h-12 w-12 mx-auto mb-4 text-green-500" />
                                         <p className="text-sm text-muted-foreground mb-2">Detected Code:</p>
                                         <p className="text-2xl font-bold mb-6 font-mono">{detectedCode}</p>
                                         <div className="flex gap-2">
-                                            <Button variant="outline" onClick={handleRetry} className="flex-1">
+                                            <Button type="button" variant="outline" onClick={handleRetry} className="flex-1">
                                                 Wrong Code
                                             </Button>
-                                            <Button onClick={handleConfirm} className="flex-1">
+                                            <Button type="button" onClick={handleConfirm} className="flex-1">
                                                 Use This
                                             </Button>
                                         </div>
@@ -138,7 +138,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
                             )}
 
                             {scanning && !detectedCode && (
-                                <div className="absolute bottom-4 left-0 right-0 text-center">
+                                <div className="absolute bottom-4 left-0 right-0 text-center z-10">
                                     <p className="text-white text-sm bg-black/50 inline-block px-4 py-2 rounded-full">
                                         Scanning... Point at barcode
                                     </p>
@@ -148,8 +148,8 @@ export default function BarcodeScanner({ onScan, onClose }) {
                     )}
                 </div>
 
-                <div className="p-4 flex gap-2 shrink-0 bg-background">
-                    <Button variant="secondary" onClick={onClose} className="w-full">
+                <div className="p-4 flex gap-2 shrink-0 bg-background relative z-20">
+                    <Button type="button" variant="secondary" onClick={onClose} className="w-full">
                         Cancel
                     </Button>
                 </div>
