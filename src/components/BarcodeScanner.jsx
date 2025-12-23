@@ -34,7 +34,9 @@ export default function BarcodeScanner({ onScan, onClose }) {
                 decoder: {
                     readers: [
                         "code_128_reader", // Standard used for AP Serial/MAC
-                        "code_39_reader"   // Fallback for older industrial codes
+                        "code_39_reader",   // Fallback for older industrial codes
+                        "code_93_reader",   // Common in Cisco/Meraki
+                        "codabar_reader"    // Industrial standard
                     ]
                 },
                 locate: true,
