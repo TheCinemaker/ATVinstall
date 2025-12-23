@@ -20,8 +20,9 @@ export default function BarcodeScanner({ onScan, onClose }) {
                     target: scannerRef.current,
                     constraints: {
                         facingMode: "environment",
-                        width: { min: 640 },
-                        height: { min: 480 }
+                        width: { min: 1280 },
+                        height: { min: 720 },
+                        aspectRatio: { min: 1, max: 2 }
                     },
                     area: { // Restrict detection to the center 30% of the screen height
                         top: "35%",
@@ -32,12 +33,8 @@ export default function BarcodeScanner({ onScan, onClose }) {
                 },
                 decoder: {
                     readers: [
-                        "code_128_reader",
-                        "code_39_reader",
-                        "ean_reader",
-                        "ean_8_reader",
-                        "upc_reader",
-                        "upc_e_reader"
+                        "code_128_reader", // Standard used for AP Serial/MAC
+                        "code_39_reader"   // Fallback for older industrial codes
                     ]
                 },
                 locate: true,
