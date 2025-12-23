@@ -90,6 +90,13 @@ export default function Dashboard() {
         }
     }, [currentProject]);
 
+    // Auto-mark as seen when chat is open
+    useEffect(() => {
+        if (showAnnouncements && unseenAnnouncements.length > 0) {
+            handleMarkAllSeen();
+        }
+    }, [showAnnouncements, unseenAnnouncements]);
+
     const handleMarkSeen = (announcementId) => {
         const seenIds = JSON.parse(localStorage.getItem(`seen_announcements_${currentProject.id}`) || '[]');
         if (!seenIds.includes(announcementId)) {
@@ -118,7 +125,7 @@ export default function Dashboard() {
             const announcement = {
                 id: uuidv4(),
                 text: newAnnouncement,
-                author: user?.displayName || 'Unknown',
+                author: user?.displayName || user?.email?.split('@')[0] || 'Unknown',
                 createdAt: new Date().toISOString()
             };
 
@@ -409,39 +416,59 @@ export default function Dashboard() {
             {/* Important Info Banner - REMOVED (Replaced by Announcements) */}
 
             {/* Announcement Popup (Blocking) */}
+            {/* Announcement Popup (Blocking) */}
             {unseenAnnouncements.length > 0 && !showAnnouncements && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-background w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border-2 border-yellow-500">
-                        <div className="p-4 bg-yellow-500/10 border-b border-yellow-500/20 flex items-center gap-3">
-                            <div className="p-2 bg-yellow-500/20 rounded-full">
-                                <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-500" />
-                            </div>
-                            <div>
-                                <h2 className="font-bold text-lg text-yellow-700 dark:text-yellow-400">New Announcements</h2>
-                                <p className="text-xs text-yellow-600/80 dark:text-yellow-500/80">Please acknowledge to continue</p>
-                            </div>
-                        </div>
-                        <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
-                            {unseenAnnouncements.map((announcement) => (
-                                <div key={announcement.id} className="space-y-2">
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <span className="font-semibold text-primary">{announcement.author}</span>
-                                        <span>{new Date(announcement.createdAt).toLocaleString()}</span>
+                (() => {
+                    const hasUrgent = unseenAnnouncements.some(a => a.text.toLowerCase().includes('@admin'));
+                    const borderColor = hasUrgent ? "border-red-600" : "border-yellow-500";
+                    const bgColor = hasUrgent ? "bg-red-950" : "bg-background"; // darker background for urgent
+                    const headerBg = hasUrgent ? "bg-red-600/20 border-red-600/30" : "bg-yellow-500/10 border-yellow-500/20";
+                    const iconColor = hasUrgent ? "text-red-500" : "text-yellow-600 dark:text-yellow-500";
+                    const iconBg = hasUrgent ? "bg-red-600/20" : "bg-yellow-500/20";
+                    const titleColor = hasUrgent ? "text-red-500" : "text-yellow-700 dark:text-yellow-400";
+                    const subtitleColor = hasUrgent ? "text-red-400/80" : "text-yellow-600/80 dark:text-yellow-500/80";
+                    const btnColor = hasUrgent ? "bg-red-600 hover:bg-red-700" : "bg-yellow-600 hover:bg-yellow-700";
+
+                    return (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+                            <div className={`w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border-2 ${borderColor} ${bgColor}`}>
+                                <div className={`p-4 ${headerBg} border-b flex items-center gap-3`}>
+                                    <div className={`p-2 ${iconBg} rounded-full`}>
+                                        <AlertTriangle className={`h-6 w-6 ${iconColor}`} />
                                     </div>
-                                    <div className="p-4 bg-muted/50 rounded-lg text-sm leading-relaxed border">
-                                        {announcement.text}
+                                    <div>
+                                        <h2 className={`font-bold text-lg ${titleColor}`}>
+                                            {hasUrgent ? "URGENT MESSAGE" : "New Announcements"}
+                                        </h2>
+                                        <p className={`text-xs ${subtitleColor}`}>Please acknowledge to continue</p>
                                     </div>
                                 </div>
-                            ))}
+                                <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+                                    {unseenAnnouncements.map((announcement) => {
+                                        const isUrgent = announcement.text.toLowerCase().includes('@admin');
+                                        return (
+                                            <div key={announcement.id} className="space-y-2">
+                                                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                                    <span className={`font-semibold ${isUrgent ? 'text-red-500' : 'text-primary'}`}>{announcement.author}</span>
+                                                    <span>{new Date(announcement.createdAt).toLocaleString()}</span>
+                                                </div>
+                                                <div className={`p-4 rounded-lg text-sm leading-relaxed border ${isUrgent ? 'bg-red-500/10 border-red-500/50 text-red-100' : 'bg-muted/50'}`}>
+                                                    {announcement.text}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="p-4 border-t bg-muted/10">
+                                    <Button className={`w-full ${btnColor} text-white font-semibold`} onClick={handleMarkAllSeen}>
+                                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                                        I have read and understood
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
-                        <div className="p-4 border-t bg-muted/30">
-                            <Button className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-semibold" onClick={handleMarkAllSeen}>
-                                <CheckCircle2 className="h-4 w-4 mr-2" />
-                                I have read and understood
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                    );
+                })()
             )}
 
             {/* Announcements Modal (Chat View) */}
@@ -475,12 +502,21 @@ export default function Dashboard() {
                                                             {new Date(announcement.createdAt).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
                                                     </div>
-                                                    <div className={`rounded-2xl px-4 py-2 text-sm shadow-sm ${isMe
-                                                        ? 'bg-primary text-primary-foreground rounded-tr-none'
-                                                        : 'bg-muted text-foreground rounded-tl-none'
-                                                        }`}>
-                                                        <p className="whitespace-pre-wrap leading-relaxed">{announcement.text}</p>
-                                                    </div>
+                                                    {(() => {
+                                                        const isUrgent = announcement.text.toLowerCase().includes('@admin');
+                                                        const bubbleClass = isMe
+                                                            ? isUrgent ? 'bg-red-600 text-white rounded-tr-none' : 'bg-primary text-primary-foreground rounded-tr-none'
+                                                            : isUrgent ? 'bg-red-600 text-white rounded-tl-none' : 'bg-muted text-foreground rounded-tl-none';
+
+                                                        return (
+                                                            <div className={`rounded-2xl px-4 py-2 text-sm shadow-sm ${bubbleClass}`}>
+                                                                <p className="whitespace-pre-wrap leading-relaxed">
+                                                                    {isUrgent && <span className="font-bold">⚠️ URGENT: </span>}
+                                                                    {announcement.text}
+                                                                </p>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                         );
