@@ -190,11 +190,9 @@ export default function ProjectSelect() {
         };
 
         try {
-            // PIN validation (required for creating or editing projects)
-            if (newProjectPin !== '0918273645') {
-                alert('Invalid PIN. Please enter the correct PIN to save the project.');
-                return;
-            }
+            // PIN validation moved to upfront auth
+            // Check if name is provided (already done above)
+            if (!newProjectName.trim()) return;
             if (isEditing && editingProjectId) {
                 await updateDoc(doc(db, 'projects', editingProjectId), projectData);
             } else {
@@ -234,6 +232,17 @@ export default function ProjectSelect() {
     };
 
     const handleAuthSubmit = async () => {
+        // Validation based on action
+        if (authAction === 'create') {
+            if (authPin !== '0918273645') {
+                setAuthError('Incorrect PIN');
+                return;
+            }
+            setIsCreating(true);
+            closeAuthModal();
+            return;
+        }
+
         if (authPin !== '987654321') {
             setAuthError('Incorrect PIN');
             return;
@@ -367,9 +376,12 @@ export default function ProjectSelect() {
                         <h1 className="text-3xl font-bold tracking-tight text-white">Projects</h1>
                         <p className="text-gray-400">Select a hotel to start working</p>
                     </div>
-                    <Button onClick={() => { resetForm(); setIsCreating(!isCreating); }} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold">
+                    <Button onClick={() => {
+                        if (isCreating) resetForm();
+                        else setAuthAction('create');
+                    }} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold">
                         <Plus className="mr-2 h-4 w-4" />
-                        New Project
+                        {isCreating ? 'Cancel' : 'New Project'}
                     </Button>
                 </div>
 
@@ -717,18 +729,7 @@ export default function ProjectSelect() {
                                 </div>
                             </div>
 
-                            {/* PIN Input */}
-                            <div className="mb-4">
-                                <label className="text-sm font-medium text-white">Project PIN (10 digits)</label>
-                                <input
-                                    type="password"
-                                    maxLength={10}
-                                    className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-center tracking-widest font-mono text-lg"
-                                    placeholder="e.g. 0918273645"
-                                    value={newProjectPin}
-                                    onChange={(e) => setNewProjectPin(e.target.value)}
-                                />
-                            </div>
+                            {/* PIN Input Removed - Auth handled upfront */}
                             <div className="flex justify-end gap-2 pt-4 border-t">
                                 <Button type="button" variant="ghost" onClick={resetForm}>Cancel</Button>
                                 <Button type="submit">{isEditing ? 'Save Changes' : 'Create Project'}</Button>
@@ -738,16 +739,18 @@ export default function ProjectSelect() {
                 )}
 
                 {/* Auth Confirmation Modal (Delete/Edit) */}
-                {projectToAuth && (
+                {(projectToAuth || authAction === 'create') && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                         <div className="bg-gray-900/50 text-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 p-6">
                             <h2 className={`text-xl font-bold mb-2 ${authAction === 'delete' ? 'text-destructive' : 'text-primary'}`}>
-                                {authAction === 'delete' ? 'Delete Project?' : 'Edit Project'}
+                                {authAction === 'delete' ? 'Delete Project?' : authAction === 'create' ? 'Admin Access Required' : 'Edit Project'}
                             </h2>
                             <p className="text-gray-300 mb-4">
                                 {authAction === 'delete'
-                                    ? `This will permanently delete ${projectToAuth.name} and all data. This cannot be undone.`
-                                    : `Enter PIN to edit details for ${projectToAuth.name}.`
+                                    ? `This will permanently delete ${projectToAuth?.name} and all data. This cannot be undone.`
+                                    : authAction === 'create'
+                                        ? "Enter Master PIN to create a new project."
+                                        : `Enter PIN to edit details for ${projectToAuth?.name}.`
                                 }
                             </p>
 
