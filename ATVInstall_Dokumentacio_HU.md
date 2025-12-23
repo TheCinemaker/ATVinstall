@@ -127,12 +127,12 @@ Minden telepítésnek van:
 - Tervrajzok mindig elérhetőek
 
 **Hogyan működik:**
-1. Kattints a "Új Projekt Létrehozása" gombra
-2. Töltsd ki a projekt részleteket
-3. Állíts be 4 jegyű PIN-t
-4. Add hozzá a csapattagokat
-5. Töltsd fel a tervrajzokat (opcionális)
-6. Mentés → Projekt létrehozva
+1. Kattints a "Új Projekt" gombra
+2. Add meg a Mester PIN-t (0918273645) a hozzáféréshez
+3. Töltsd ki a projekt részleteket
+4. Állíts be szerkesztési PIN-t a jövőbeni módosításokhoz
+5. Add hozzá a csapattagokat
+6. Mentés → Projekt létrehozva (PIN már nem kell a mentéshez)
 
 ### 1.2 Projekt Kiválasztás
 
@@ -220,25 +220,26 @@ Minden telepítésnek van:
 - Megnyitja a telefon kameráját
 - Beolvassa a vonalkódot az eszköz címkéjén
 - Automatikusan kitölti a Sorozat/MAC mezőt
-- Támogatja: Code 128, Code 39, EAN, UPC
+- Támogatja: Code 128, Code 39, Code 93 (Meraki/Cisco), Codabar
+- **HD Felbontás:** 720p a sűrű vonalkódokhoz
+- **Lézeres Célzás:** Piros segédvonal a pontos kiválasztáshoz (pl. amikor 2 kód van egymás alatt)
 
 **Miért fontos:**
 - **Nincs gépelési hiba:** Szkennelés vs manuális bevitel
 - **10x gyorsabb:** 3 másodperc vs 30 másodperc
-- **Pontosság:** 100% vs ~90% manuális pontosság
+- **Pontosság:** Kiemelt pontosság ipari címkéken, lakossági kódok (EAN/UPC) szűrésével
 
 **Hogyan működik:**
 1. Kattints a vonalkód ikonra (📷) a Sorozatszám mező mellett
 2. Irányítsd a kamerát a vonalkódra
-3. Várj az észlelésre (1-2 másodperc)
-4. Erősítsd meg vagy próbáld újra ha rossz kód
-5. Kód automatikusan kitöltődik a mezőben
+3. Igazítsd a piros lézer csíkot a kívánt vonalkódra (Serial vagy MAC)
+4. A rendszer automatikusan felismeri és beilleszti
+5. Megerősítő ablak jelenik meg
 
 **Speciális funkció:**
-- Megerősítő dialógus mutatja a beolvasott kódot
+- **Precíziós Célzás:** A szkenner csak a kép közepét figyeli, így könnyen kiválasztható a megfelelő kód sűrű matricákon is.
 - "Rossz Kód" gomb újra szkenneléshez
 - "Használd Ezt" gomb elfogadáshoz
-- Megakadályozza a véletlen szkennelést (fontos amikor 2 vonalkód van ugyanazon a címkén)
 
 ### 2.4 Telepítési Folyamat
 
@@ -439,11 +440,18 @@ Minden telepítésnek van:
 - Időbélyegek
 - Görgethető történet
 
+**Sürgős Üzenetek (@admin):**
+- Ha az üzenet tartalmazza az **"@admin"** szöveget (bárhol):
+  - 🔴 **Piros riasztás:** A chat ikon és a popup pirosra vált
+  - ⚠️ **Kiemelés:** Az üzenet piros hátteret kap a chatben "URGENT" jelzéssel
+  - **Auto-olvasás:** Ha a chat nyitva van, az üzenetek automatikusan olvasottnak jelölődnek
+
 **Miért jobb mint a WhatsApp:**
 - Csak fontos üzenetek
 - Kényszerített nyugtázás
 - Kereshető történet
 - Projekt-specifikus
+- Sürgős üzenetek vizuális elkülönítése
 
 ### 6.3 Csapat Névjegyzék
 
