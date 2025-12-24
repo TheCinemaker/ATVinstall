@@ -39,10 +39,10 @@ export default function Login() {
                         <img
                             src="/logo.png"
                             alt="ATVinstall"
-                            className="h-24 w-auto object-contain"
+                            className="h-32 w-auto max-w-[80%] object-contain"
                         />
                     </div>
-                    <p className="text-gray-400">Network Installation Management</p>
+                    <p className="text-gray-400">AT-Visions Installation Management system</p>
                 </div>
 
                 {/* Login Form */}

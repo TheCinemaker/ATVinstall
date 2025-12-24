@@ -22,6 +22,8 @@ export default function ProjectSelect() {
     const [newProjectLocation, setNewProjectLocation] = useState('');
     const [targetTv, setTargetTv] = useState(0);
     const [targetAp, setTargetAp] = useState(0);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     // Room Generator State
     const [startFloor, setStartFloor] = useState(1);
@@ -186,6 +188,10 @@ export default function ProjectSelect() {
             devices: deviceTypes,
             contacts: contacts,
             blueprints: blueprints,
+            contacts: contacts,
+            blueprints: blueprints,
+            startDate: startDate,
+            endDate: endDate,
             updatedAt: new Date().toISOString()
         };
 
@@ -216,6 +222,10 @@ export default function ProjectSelect() {
         setNewProjectLocation('');
         setTargetTv(0);
         setTargetAp(0);
+        setTargetTv(0);
+        setTargetAp(0);
+        setStartDate('');
+        setEndDate('');
         setRoomListText('');
         setTeamMembers([]);
         setProjectManager('');
@@ -268,7 +278,11 @@ export default function ProjectSelect() {
             setProjectManager(p.manager || '');
             setDeviceTypes(p.devices || []);
             setContacts(p.contacts || []);
+            setDeviceTypes(p.devices || []);
+            setContacts(p.contacts || []);
             setBlueprints(p.blueprints || []);
+            setStartDate(p.startDate || '');
+            setEndDate(p.endDate || '');
 
             setEditingProjectId(p.id);
             setIsEditing(true);
@@ -374,12 +388,12 @@ export default function ProjectSelect() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-white">Projects</h1>
-                        <p className="text-gray-400">Select a hotel to start working</p>
+                        <p className="text-gray-400">Select a project to start working</p>
                     </div>
                     <Button onClick={() => {
                         if (isCreating) resetForm();
                         else setAuthAction('create');
-                    }} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold">
+                    }} className="bg-gray-900 border border-yellow-500/50 text-yellow-500 hover:bg-yellow-500 hover:text-black hover:border-yellow-500 transition-all shadow-lg shadow-yellow-500/10 font-medium">
                         <Plus className="mr-2 h-4 w-4" />
                         {isCreating ? 'Cancel' : 'New Project'}
                     </Button>
@@ -475,6 +489,31 @@ export default function ProjectSelect() {
                                         placeholder="e.g. Budapest, Váci utca 1."
                                         value={newProjectLocation}
                                         onChange={(e) => setNewProjectLocation(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Date Range */}
+                            <div className="grid gap-4 md:grid-cols-2 border-t pt-4">
+                                <h3 className="col-span-2 font-medium flex items-center gap-2">
+                                    <Calendar className="h-4 w-4" /> <span className="text-white">Project Schedule</span>
+                                </h3>
+                                <div>
+                                    <label className="text-sm font-medium text-white">Start Date</label>
+                                    <input
+                                        type="date"
+                                        className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-white">End Date</label>
+                                    <input
+                                        type="date"
+                                        className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -797,7 +836,7 @@ export default function ProjectSelect() {
                                 <div
                                     key={project.id}
                                     onClick={() => handleSelectProject(project)}
-                                    className="group relative flex flex-col gap-2 rounded-xl border border-gray-700 bg-gray-800/50 backdrop-blur-sm p-6 shadow-xl transition-all hover:shadow-2xl hover:border-yellow-500 cursor-pointer"
+                                    className="group relative flex flex-col gap-2 rounded-xl border border-gray-700 bg-gray-800/50 backdrop-blur-sm p-6 shadow-xl transition-all duration-500 hover:shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:border-yellow-500 cursor-pointer hover:scale-[1.01]"
                                 >
                                     <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-2">
                                         <Button
@@ -841,31 +880,67 @@ export default function ProjectSelect() {
                                         <div className="p-2 bg-primary/10 rounded-full text-primary">
                                             <Building2 className="h-6 w-6" />
                                         </div>
-                                        <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-primary transition-colors" />
+                                        <ChevronRight className="h-8 w-8 text-gray-500 group-hover:text-yellow-500 transition-colors" />
                                     </div>
                                     <h3 className="font-semibold text-xl mt-2 text-white">{project.name}</h3>
                                     <p className="text-sm text-gray-300 flex items-center gap-1">
                                         {project.location || 'No location specified'}
                                     </p>
-                                    <div className="flex gap-4 mt-1">
-                                        {project.rooms && (
-                                            <p className="text-xs text-gray-300">
-                                                {project.rooms.length} rooms
-                                            </p>
-                                        )}
-                                        {project.team && (
-                                            <p className="text-xs text-gray-300">
-                                                {project.team.length} members
-                                            </p>
-                                        )}
-                                    </div>
-                                    <div className="flex gap-2 mt-1 text-xs text-gray-300">
-                                        {project.targets?.tv > 0 && <span>TV: {project.targets.tv}</span>}
-                                        {project.targets?.ap > 0 && <span>AP: {project.targets.ap}</span>}
-                                    </div>
-                                    <div className="mt-auto pt-4 flex items-center text-xs text-gray-300">
-                                        <Calendar className="h-3 w-3 mr-1" />
-                                        {project.createdAt.toLocaleDateString() || 'Just now'}
+                                    <div className="mt-auto space-y-3">
+                                        <div className="flex gap-2 mt-1 text-xs text-gray-300">
+                                            {project.targets?.tv > 0 && <span>TV: {project.targets.tv}</span>}
+                                            {project.targets?.ap > 0 && <span>AP: {project.targets.ap}</span>}
+                                        </div>
+
+                                        <div className="pt-3 border-t border-gray-700/50 flex flex-col gap-2">
+                                            {/* Date Range */}
+                                            <div className="flex items-center text-xs text-yellow-500/80 font-medium mb-1">
+                                                <Calendar className="h-3 w-3 mr-1" />
+                                                {project.startDate && project.endDate ? (
+                                                    <span>
+                                                        {new Date(project.startDate).toLocaleDateString()} - {new Date(project.endDate).toLocaleDateString()}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-500 italic">No schedule set</span>
+                                                )}
+                                            </div>
+
+                                            {/* Team Info */}
+                                            <div className="space-y-2 text-xs">
+                                                {project.manager && (
+                                                    <div className="flex justify-between items-center text-gray-400">
+                                                        <span className="text-gray-500">Admin</span>
+                                                        <span className="text-gray-200 font-medium">{project.manager}</span>
+                                                    </div>
+                                                )}
+
+                                                {project.team && project.team.some(m => m.role === 'Install Team') && (
+                                                    <div className="space-y-1">
+                                                        <div className="text-gray-500">Install Team</div>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {project.team.filter(m => m.role === 'Install Team').map((m, idx) => (
+                                                                <span key={idx} className="px-2 py-0.5 rounded-md bg-gray-700/40 border border-gray-600/50 text-gray-200">
+                                                                    {m.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {project.team && project.team.some(m => m.role === 'IT Team') && (
+                                                    <div className="space-y-1">
+                                                        <div className="text-gray-500">IT Team</div>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {project.team.filter(m => m.role === 'IT Team').map((m, idx) => (
+                                                                <span key={idx} className="px-2 py-0.5 rounded-md bg-gray-700/40 border border-gray-600/50 text-gray-200">
+                                                                    {m.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ))
