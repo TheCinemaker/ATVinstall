@@ -4,10 +4,12 @@ import { Button } from './ui/button';
 import ImageUpload from './ImageUpload';
 import BarcodeScanner from './BarcodeScanner';
 import { useProject } from '../contexts/ProjectContext';
+import { useAuth } from '../contexts/AuthContext'; // Import Auth
 import { db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
 export default function ActivityDetailModal({ activity, onClose }) {
+    const { user } = useAuth(); // Get User
     const { currentProject } = useProject();
     const [isResolving, setIsResolving] = useState(false);
     const [resolutionNotes, setResolutionNotes] = useState('');
@@ -25,6 +27,7 @@ export default function ActivityDetailModal({ activity, onClose }) {
     // Scanner State
     const [showScanner, setShowScanner] = useState(false);
     const [scanTarget, setScanTarget] = useState(null); // 'serial' or 'mac'
+    const [zoomedImage, setZoomedImage] = useState(null); // For Image Zoom
 
     const handleScan = (result) => {
         if (scanTarget === 'serial') {
@@ -46,7 +49,10 @@ export default function ActivityDetailModal({ activity, onClose }) {
 
     // Helper to format date
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleString([], {
+        if (!dateString) return 'N/A';
+        // Handle Firestore Timestamp
+        const date = dateString.seconds ? new Date(dateString.seconds * 1000) : new Date(dateString);
+        return date.toLocaleString([], {
             year: 'numeric', month: 'long', day: 'numeric',
             hour: '2-digit', minute: '2-digit'
         });
@@ -96,6 +102,7 @@ export default function ActivityDetailModal({ activity, onClose }) {
                 status: 'resolved',
                 resolutionNotes,
                 resolutionPhotos: validPhotos,
+                resolvedBy: user?.displayName || user?.email || 'Admin', // Save the resolver!
                 resolvedAt: new Date()
             });
 
@@ -140,29 +147,29 @@ export default function ActivityDetailModal({ activity, onClose }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-background w-full max-w-lg max-h-[90vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-gray-900 border border-gray-800 w-full max-w-lg max-h-[90vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 text-gray-100">
 
                 {/* Header */}
-                <div className="p-4 border-b flex items-center justify-between bg-muted/30">
+                <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-black/20">
                     <div>
-                        <h2 className="font-bold text-lg flex items-center gap-2">
-                            {isIssue ? <AlertTriangle className={`h-5 w-5 ${isResolved ? 'text-green-500' : 'text-red-500'}`} /> : <Router className="h-5 w-5 text-primary" />}
+                        <h2 className="font-bold text-lg flex items-center gap-2 text-white">
+                            {isIssue ? <AlertTriangle className={`h-5 w-5 ${isResolved ? 'text-green-500' : 'text-red-500'}`} /> : <Router className="h-5 w-5 text-yellow-500" />}
                             {activity.deviceType ? activity.deviceType.toUpperCase() : 'Issue Report'}
-                            {isResolved && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Resolved</span>}
+                            {isResolved && <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full border border-green-500/30">Resolved</span>}
                         </h2>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                             <Calendar className="h-3 w-3" />
                             {formatDate(activity.createdAt)}
                         </p>
                     </div>
                     <div className="flex gap-2">
                         {!isResolving && !isEditing && (
-                            <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="rounded-full hover:bg-muted" title="Edit">
+                            <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="rounded-full hover:bg-gray-800 text-gray-400 hover:text-white" title="Edit">
                                 <Edit className="h-5 w-5" />
                             </Button>
                         )}
-                        <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-muted">
+                        <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-gray-800 text-gray-400 hover:text-white">
                             <X className="h-5 w-5" />
                         </Button>
                     </div>
@@ -173,15 +180,15 @@ export default function ActivityDetailModal({ activity, onClose }) {
 
                     {isResolving ? (
                         <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-300">
-                            <div className="bg-green-50/50 border border-green-100 p-4 rounded-xl">
-                                <h3 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                            <div className="bg-green-900/10 border border-green-900/30 p-4 rounded-xl">
+                                <h3 className="font-semibold text-green-400 mb-2 flex items-center gap-2">
                                     <CheckCircle2 className="h-5 w-5" /> Resolve Issue
                                 </h3>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Resolution Notes</label>
+                                        <label className="block text-sm font-medium mb-1 text-gray-400">Resolution Notes</label>
                                         <textarea
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2"
+                                            className="w-full rounded-md border border-gray-700 bg-gray-800 text-white px-3 py-2 outline-none focus:border-green-500 transition-all"
                                             placeholder="How did you fix it?"
                                             rows={3}
                                             value={resolutionNotes}
@@ -189,7 +196,7 @@ export default function ActivityDetailModal({ activity, onClose }) {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="block text-sm font-medium">Proof Photos</label>
+                                        <label className="block text-sm font-medium text-gray-400">Proof Photos</label>
                                         {resolutionPhotos.map((_, index) => (
                                             <ImageUpload
                                                 key={index}
@@ -201,85 +208,73 @@ export default function ActivityDetailModal({ activity, onClose }) {
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            className="w-full border-dashed"
+                                            className="w-full border-dashed border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800"
                                             onClick={handleAddPhoto}
                                         >
                                             <Plus className="h-4 w-4 mr-2" />
                                             Add Another Photo
                                         </Button>
                                     </div>
-                                    <div className="space-y-1">
-                                        <p className="text-xs text-gray-400">Serial Number</p>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                className="flex-1 rounded-md border border-input bg-gray-900/50 text-white px-2 py-1 text-sm"
-                                                value={editSerial}
-                                                onChange={(e) => setEditSerial(e.target.value)}
-                                            />
-                                            <Button type="button" variant="secondary" size="icon" className="h-8 w-8" onClick={() => startScan('serial')}>
-                                                <ScanBarcode className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-xs text-gray-400">MAC Address</p>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                className="flex-1 rounded-md border border-input bg-gray-900/50 text-white px-2 py-1 text-sm"
-                                                value={editMac}
-                                                onChange={(e) => setEditMac(e.target.value)}
-                                            />
-                                            <Button type="button" variant="secondary" size="icon" className="h-8 w-8" onClick={() => startScan('mac')}>
-                                                <ScanBarcode className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     ) : (
                         <>
-                            {/* Installer Info */}
-                            <div className="flex items-center gap-3 p-3 bg-card rounded-lg border shadow-sm">
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <User className="h-5 w-5 text-primary" />
+                            {/* User Info (Installer or Reporter) */}
+                            <div className="flex items-center gap-3 p-3 bg-gray-900/50 rounded-lg border border-gray-800 shadow-sm">
+                                <div className="h-10 w-10 rounded-full bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
+                                    <User className="h-5 w-5 text-yellow-500" />
                                 </div>
-                                <div>
-                                    <p className="text-sm font-medium">Installer</p>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-300">{isIssue ? 'Reported By' : 'Installer'}</p>
                                     {isEditing ? (
                                         <input
-                                            className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
+                                            className="w-full rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm text-white focus:border-yellow-500 outline-none"
                                             value={editInstaller}
                                             onChange={(e) => setEditInstaller(e.target.value)}
                                         />
                                     ) : (
-                                        <p className="text-sm text-muted-foreground">{activity.installerName || activity.installer || activity.reportedBy}</p>
+                                        <p className="text-sm text-gray-400">{activity.createdBy || activity.reportedBy || activity.installerName || activity.installer || 'Unknown'}</p>
                                     )}
                                 </div>
                             </div>
 
+                            {/* Resolved By Info */}
+                            {isResolved && (
+                                <div className="flex items-center gap-3 p-3 bg-green-900/10 rounded-lg border border-green-900/30 shadow-sm">
+                                    <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20">
+                                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium text-green-400">Resolved By</p>
+                                        <div className="flex justify-between items-center">
+                                            <p className="text-sm text-gray-300">{activity.resolvedBy || 'Unknown'}</p>
+                                            <p className="text-xs text-gray-500">{formatDate(activity.resolvedAt)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Location Details */}
                             <div className="space-y-3">
-                                <h3 className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
-                                    <MapPin className="h-4 w-4" /> Location
+                                <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                                    <MapPin className="h-3 w-3" /> Location Details
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-3 bg-muted/30 rounded-lg">
-                                        <p className="text-xs text-muted-foreground">Type</p>
-                                        <p className="font-medium">{activity.locationType || 'N/A'}</p>
+                                    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-800">
+                                        <p className="text-xs text-gray-500">Type</p>
+                                        <p className="font-medium text-white">{activity.locationType || 'N/A'}</p>
                                     </div>
-                                    <div className="p-3 bg-muted/30 rounded-lg">
-                                        <p className="text-xs text-muted-foreground">ID / Room</p>
+                                    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-800">
+                                        <p className="text-xs text-gray-500">ID / Room</p>
                                         {isEditing ? (
                                             <input
-                                                className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm mt-1"
+                                                className="w-full rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm mt-1 text-white focus:border-yellow-500 outline-none"
                                                 value={editLocation}
                                                 onChange={(e) => setEditLocation(e.target.value)}
                                             />
                                         ) : (
-                                            <p className="font-medium">{activity.locationId || activity.location || 'N/A'}</p>
+                                            <p className="font-medium text-white">{activity.locationId || activity.location || 'N/A'}</p>
                                         )}
                                     </div>
                                 </div>
@@ -288,49 +283,71 @@ export default function ActivityDetailModal({ activity, onClose }) {
                             {/* Device / Technical Details */}
                             {!isIssue && (
                                 <div className="space-y-3">
-                                    <h3 className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
-                                        <Hash className="h-4 w-4" /> Technical Details
+                                    <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                                        <Hash className="h-3 w-3" /> Technical Details
                                     </h3>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 bg-gray-800/30 p-3 rounded-lg border border-gray-800">
                                         {(activity.serialNumber || isEditing) && (
-                                            <div className="flex justify-between items-center p-2 border-b">
-                                                <span className="text-sm text-muted-foreground">Serial / MAC</span>
+                                            <div className="flex justify-between items-center py-2 border-b border-gray-700 last:border-0">
+                                                <span className="text-sm text-gray-500">Serial / MAC</span>
                                                 {isEditing ? (
-                                                    <input
-                                                        className="w-32 rounded-md border border-input bg-background px-2 py-1 text-sm font-mono text-right"
-                                                        value={editSerial}
-                                                        onChange={(e) => setEditSerial(e.target.value)}
-                                                        placeholder="Serial"
-                                                    />
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            className="w-32 rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm font-mono text-right text-white focus:border-yellow-500 outline-none"
+                                                            value={editSerial}
+                                                            onChange={(e) => setEditSerial(e.target.value)}
+                                                            placeholder="Serial"
+                                                        />
+                                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-yellow-500" onClick={() => startScan('serial')}>
+                                                            <ScanBarcode className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 ) : (
-                                                    <span className="text-sm font-mono">{activity.serialNumber}</span>
+                                                    <span className="text-sm font-mono text-yellow-500">{activity.serialNumber}</span>
                                                 )}
                                             </div>
                                         )}
+                                        {isEditing && (
+                                            <div className="flex justify-between items-center py-2 border-b border-gray-700 last:border-0">
+                                                <span className="text-sm text-gray-500">MAC Address</span>
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        className="w-32 rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm font-mono text-right text-white focus:border-yellow-500 outline-none"
+                                                        value={editMac}
+                                                        onChange={(e) => setEditMac(e.target.value)}
+                                                        placeholder="MAC"
+                                                    />
+                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-yellow-500" onClick={() => startScan('mac')}>
+                                                        <ScanBarcode className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {activity.portInfo && (
-                                            <div className="flex justify-between p-2 border-b">
-                                                <span className="text-sm text-muted-foreground">Port Info</span>
-                                                <span className="text-sm font-medium">{activity.portInfo}</span>
+                                            <div className="flex justify-between py-2 border-b border-gray-700 last:border-0">
+                                                <span className="text-sm text-gray-500">Port Info</span>
+                                                <span className="text-sm font-medium text-white">{activity.portInfo}</span>
                                             </div>
                                         )}
                                         {activity.switchName && (
-                                            <div className="flex justify-between p-2 border-b">
-                                                <span className="text-sm text-muted-foreground">Switch Name</span>
-                                                <span className="text-sm font-medium">{activity.switchName}</span>
+                                            <div className="flex justify-between py-2 border-b border-gray-700 last:border-0">
+                                                <span className="text-sm text-gray-500">Switch Name</span>
+                                                <span className="text-sm font-medium text-white">{activity.switchName}</span>
                                             </div>
                                         )}
                                         {activity.switchPosition && (
-                                            <div className="flex justify-between p-2 border-b">
-                                                <span className="text-sm text-muted-foreground">Position</span>
-                                                <span className="text-sm font-medium">{activity.switchPosition}</span>
+                                            <div className="flex justify-between py-2 border-b border-gray-700 last:border-0">
+                                                <span className="text-sm text-gray-500">Position</span>
+                                                <span className="text-sm font-medium text-white">{activity.switchPosition}</span>
                                             </div>
                                         )}
                                         {activity.deviceType === 'cloning' && (
-                                            <div className="flex justify-between p-2 border-b">
-                                                <span className="text-sm text-muted-foreground">Status</span>
+                                            <div className="flex justify-between py-2 border-b border-gray-700 last:border-0">
+                                                <span className="text-sm text-gray-500">Status</span>
                                                 <div className="flex gap-2">
-                                                    {activity.isUpdateDone && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Updated</span>}
-                                                    {activity.isCloningDone && <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Cloned</span>}
+                                                    {activity.isUpdateDone && <span className="text-xs bg-blue-900/30 text-blue-400 px-2 py-0.5 rounded-full border border-blue-900/50">Updated</span>}
+                                                    {activity.isCloningDone && <span className="text-xs bg-purple-900/30 text-purple-400 px-2 py-0.5 rounded-full border border-purple-900/50">Cloned</span>}
                                                 </div>
                                             </div>
                                         )}
@@ -339,20 +356,20 @@ export default function ActivityDetailModal({ activity, onClose }) {
                             )}
 
                             {/* Notes / Description */}
-                            {(activity.notes || activity.description || activity.issueDescription) && (
+                            {(activity.notes || activity.description || activity.issueDescription || isEditing) && (
                                 <div className="space-y-3">
-                                    <h3 className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
-                                        <FileText className="h-4 w-4" /> {isIssue ? 'Description' : 'Notes'}
+                                    <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                                        <FileText className="h-3 w-3" /> {isIssue ? 'Description' : 'Notes'}
                                     </h3>
                                     {isEditing ? (
                                         <textarea
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm leading-relaxed"
+                                            className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm leading-relaxed text-white focus:border-yellow-500 outline-none"
                                             rows={4}
                                             value={editDescription}
                                             onChange={(e) => setEditDescription(e.target.value)}
                                         />
                                     ) : (
-                                        <div className="p-3 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-lg text-sm leading-relaxed">
+                                        <div className="p-3 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg text-sm leading-relaxed">
                                             {activity.notes || activity.description || activity.issueDescription}
                                         </div>
                                     )}
@@ -362,10 +379,10 @@ export default function ActivityDetailModal({ activity, onClose }) {
                             {/* Resolution Details */}
                             {isResolved && (
                                 <div className="space-y-3">
-                                    <h3 className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2 text-green-600">
-                                        <CheckCircle2 className="h-4 w-4" /> Resolution
+                                    <h3 className="text-xs font-semibold uppercase text-green-500 tracking-wider flex items-center gap-2">
+                                        <CheckCircle2 className="h-3 w-3" /> Resolution
                                     </h3>
-                                    <div className="p-3 bg-green-500/10 text-green-700 dark:text-green-400 rounded-lg text-sm leading-relaxed">
+                                    <div className="p-3 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg text-sm leading-relaxed">
                                         {activity.resolutionNotes}
                                     </div>
                                 </div>
@@ -374,19 +391,20 @@ export default function ActivityDetailModal({ activity, onClose }) {
                             {/* Photos */}
                             {photos.length > 0 && (
                                 <div className="space-y-3">
-                                    <h3 className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
-                                        <ImageIcon className="h-4 w-4" /> Photos
+                                    <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                                        <ImageIcon className="h-3 w-3" /> Photos
                                     </h3>
                                     <div className="grid grid-cols-1 gap-4">
                                         {photos.map((photo, idx) => (
                                             <div key={idx} className="space-y-1">
-                                                <p className="text-xs text-muted-foreground ml-1">{photo.label}</p>
-                                                <div className="rounded-lg overflow-hidden border shadow-sm bg-muted">
+                                                <p className="text-[10px] text-gray-500 ml-1 uppercase">{photo.label}</p>
+                                                <div className="rounded-lg overflow-hidden border border-gray-800 shadow-sm bg-black">
                                                     <img
                                                         src={photo.url}
                                                         alt={photo.label}
-                                                        className="w-full h-auto object-cover max-h-64"
+                                                        className="w-full h-auto object-cover max-h-64 opacity-90 hover:opacity-100 transition-opacity cursor-zoom-in"
                                                         loading="lazy"
+                                                        onClick={() => setZoomedImage(photo.url)}
                                                     />
                                                 </div>
                                             </div>
@@ -399,33 +417,33 @@ export default function ActivityDetailModal({ activity, onClose }) {
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t bg-muted/30 flex gap-3">
+                <div className="p-4 border-t border-gray-800 bg-black/20 flex gap-3">
                     {isResolving ? (
                         <>
-                            <Button variant="outline" className="flex-1" onClick={() => setIsResolving(false)} disabled={loading}>
+                            <Button variant="outline" className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white" onClick={() => setIsResolving(false)} disabled={loading}>
                                 Cancel
                             </Button>
-                            <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={handleResolve} disabled={loading}>
+                            <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold" onClick={handleResolve} disabled={loading}>
                                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Mark as Resolved'}
                             </Button>
                         </>
                     ) : isEditing ? (
                         <>
-                            <Button variant="outline" className="flex-1" onClick={() => setIsEditing(false)} disabled={loading}>
+                            <Button variant="outline" className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white" onClick={() => setIsEditing(false)} disabled={loading}>
                                 Cancel
                             </Button>
-                            <Button className="flex-1 bg-primary text-primary-foreground" onClick={handleSaveEdit} disabled={loading}>
+                            <Button className="flex-1 bg-yellow-500 text-black hover:bg-yellow-400 font-bold" onClick={handleSaveEdit} disabled={loading}>
                                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Changes'}
                             </Button>
                         </>
                     ) : (
                         <>
                             {isIssue && !isResolved && (
-                                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => setIsResolving(true)}>
+                                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold" onClick={() => setIsResolving(true)}>
                                     Resolve Issue
                                 </Button>
                             )}
-                            <Button className={isIssue && !isResolved ? "flex-1" : "w-full"} variant={isIssue && !isResolved ? "outline" : "default"} onClick={onClose}>
+                            <Button className={isIssue && !isResolved ? "flex-1" : "w-full bg-gray-800 hover:bg-gray-700 text-white"} variant={isIssue && !isResolved ? "outline" : "default"} onClick={onClose}>
                                 Close
                             </Button>
                         </>
@@ -437,6 +455,30 @@ export default function ActivityDetailModal({ activity, onClose }) {
                     onScan={handleScan}
                     onClose={() => setShowScanner(false)}
                 />
+            )}
+
+            {/* Zoomed Image Lightbox */}
+            {zoomedImage && (
+                <div
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 animate-in fade-in duration-200 cursor-zoom-out"
+                    onClick={() => setZoomedImage(null)}
+                >
+                    <div className="relative w-full h-full p-4 flex items-center justify-center">
+                        <img
+                            src={zoomedImage}
+                            alt="Zoomed"
+                            className="max-w-full max-h-full object-contain shadow-2xl rounded-sm"
+                        />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-4 right-4 text-white/50 hover:text-white rounded-full bg-black/50 hover:bg-black/80"
+                            onClick={() => setZoomedImage(null)}
+                        >
+                            <X className="h-8 w-8" />
+                        </Button>
+                    </div>
+                </div>
             )}
         </div>
     );

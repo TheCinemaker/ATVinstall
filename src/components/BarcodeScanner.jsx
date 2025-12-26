@@ -103,12 +103,12 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-background w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative flex flex-col max-h-[90vh]">
-                <div className="p-4 border-b flex items-center justify-between bg-muted/30 shrink-0 relative z-20">
-                    <h2 className="font-bold text-lg flex items-center gap-2">
-                        <Camera className="h-5 w-5" /> Scan Barcode
+            <div className="bg-gray-900 border border-gray-800 w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative flex flex-col max-h-[90vh]">
+                <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-black/20 shrink-0 relative z-20">
+                    <h2 className="font-bold text-lg flex items-center gap-2 text-white">
+                        <Camera className="h-5 w-5 text-yellow-500" /> Scan Barcode
                     </h2>
-                    <Button type="button" variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+                    <Button type="button" variant="ghost" size="icon" onClick={onClose} className="rounded-full text-gray-400 hover:text-white hover:bg-gray-800">
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
@@ -171,8 +171,8 @@ export default function BarcodeScanner({ onScan, onClose }) {
                     )}
                 </div>
 
-                <div className="p-4 flex gap-2 shrink-0 bg-background relative z-20">
-                    <Button type="button" variant="secondary" onClick={onClose} className="w-full">
+                <div className="p-4 flex gap-2 shrink-0 bg-gray-900 border-t border-gray-800 relative z-20">
+                    <Button type="button" variant="secondary" onClick={onClose} className="w-full bg-gray-800 text-white hover:bg-gray-700">
                         Cancel
                     </Button>
                 </div>

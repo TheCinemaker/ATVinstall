@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Footer from '../components/Footer';
 import { Button } from '../components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -112,6 +113,7 @@ export default function Login() {
                 <p className="mt-6 text-center text-xs text-gray-500">
                     Secure access for authorized installers only
                 </p>
+                <Footer />
             </div>
         </div>
     );

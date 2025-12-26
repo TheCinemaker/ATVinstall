@@ -76,10 +76,10 @@ export default function ImageUpload({ onImageCapture, label = "Take Photo", curr
 
     return (
         <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">{label}</label>
+            <label className="block text-sm font-medium text-gray-400">{label}</label>
 
             <div
-                className={`relative border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center min-h-[160px] transition-colors ${preview ? 'border-primary/50 bg-primary/5' : 'border-gray-300 hover:border-primary hover:bg-gray-50'
+                className={`relative border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center min-h-[160px] transition-colors ${preview ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-gray-700 bg-gray-900/30 hover:border-yellow-500/50 hover:bg-gray-800'
                     }`}
                 onClick={() => !processing && fileInputRef.current?.click()}
             >
@@ -100,7 +100,7 @@ export default function ImageUpload({ onImageCapture, label = "Take Photo", curr
                                 type="button"
                                 variant="destructive"
                                 size="icon"
-                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full shadow-md"
+                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full shadow-md bg-red-600 hover:bg-red-700"
                                 onClick={clearImage}
                             >
                                 <X className="h-3 w-3" />
@@ -109,11 +109,11 @@ export default function ImageUpload({ onImageCapture, label = "Take Photo", curr
                     </div>
                 ) : (
                     <div className="text-center space-y-2 cursor-pointer">
-                        <div className="p-3 bg-primary/10 rounded-full inline-block">
-                            <Camera className="h-6 w-6 text-primary" />
+                        <div className="p-3 bg-gray-800 rounded-full inline-block group-hover:bg-gray-700 transition-colors">
+                            <Camera className="h-6 w-6 text-yellow-500" />
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                            <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+                        <div className="text-sm text-gray-400">
+                            <span className="font-semibold text-yellow-500">Click to upload</span> or drag and drop
                         </div>
                     </div>
                 )}

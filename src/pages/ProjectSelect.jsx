@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Footer from '../components/Footer';
 import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -41,7 +42,7 @@ export default function ProjectSelect() {
     const [authAction, setAuthAction] = useState(null); // 'delete' or 'edit'
     const [authError, setAuthError] = useState('');
     const [projectManager, setProjectManager] = useState('');
-    const deviceOptions = ['TV', 'AP', 'Switch', 'Firewall', 'Signage', 'SAT', 'IPTEL', 'Camera', 'Management server', 'OPC', 'Media Encoder', 'Headend', 'Chromecast'];
+    const deviceOptions = ['TV', 'TV Cloning', 'AP', 'Switch', 'Firewall', 'Signage', 'SAT', 'IPTEL', 'Camera', 'Management server', 'OPC', 'Media Encoder', 'Headend', 'Chromecast'];
     const [deviceTypes, setDeviceTypes] = useState([]);
     const [newDevice, setNewDevice] = useState('');
     const [contacts, setContacts] = useState([]);
@@ -174,17 +175,22 @@ export default function ProjectSelect() {
         // Parse room list
         const rooms = roomListText.split('\n').map(r => r.trim()).filter(r => r);
 
+        // Clean up targets: remove keys for devices not in deviceTypes
+        const cleanedTargets = {};
+        deviceTypes.forEach(device => {
+            if (targetCounts[device] !== undefined && targetCounts[device] !== '') {
+                cleanedTargets[device] = parseInt(targetCounts[device]);
+            }
+        });
+
         const projectData = {
             name: newProjectName,
             location: newProjectLocation,
             rooms: rooms,
             team: teamMembers,
-            team: teamMembers,
-            targets: targetCounts,
+            targets: cleanedTargets,
             manager: projectManager,
             devices: deviceTypes,
-            contacts: contacts,
-            blueprints: blueprints,
             contacts: contacts,
             blueprints: blueprints,
             startDate: startDate,
@@ -193,9 +199,6 @@ export default function ProjectSelect() {
         };
 
         try {
-            // PIN validation moved to upfront auth
-            // Check if name is provided (already done above)
-            if (!newProjectName.trim()) return;
             if (isEditing && editingProjectId) {
                 await updateDoc(doc(db, 'projects', editingProjectId), projectData);
             } else {
@@ -233,6 +236,7 @@ export default function ProjectSelect() {
         setIsEditing(false);
         setEditingProjectId(null);
         setNewProjectPin('');
+        setSearchQuery('');
     };
 
     const handleAuthSubmit = async () => {
@@ -401,6 +405,7 @@ export default function ProjectSelect() {
                         className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-700 bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500 transition-colors"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        autoComplete="off"
                     />
                 </div>
 
@@ -527,10 +532,10 @@ export default function ProjectSelect() {
                                                     type="number"
                                                     min="0"
                                                     className="mt-1 block w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2"
-                                                    value={targetCounts[device] || 0}
+                                                    value={targetCounts[device] ?? ''}
                                                     onChange={(e) => setTargetCounts({
                                                         ...targetCounts,
-                                                        [device]: parseInt(e.target.value) || 0
+                                                        [device]: e.target.value === '' ? '' : parseInt(e.target.value)
                                                     })}
                                                 />
                                             </div>
@@ -859,6 +864,7 @@ export default function ProjectSelect() {
                     )}
                 </div>
             </div >
+            <Footer />
         </div >
     );
 }

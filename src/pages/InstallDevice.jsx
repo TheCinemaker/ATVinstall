@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
+import Footer from '../components/Footer';
 import ImageUpload from '../components/ImageUpload';
 import { ArrowLeft, Loader2, ScanBarcode } from 'lucide-react';
 import BarcodeScanner from '../components/BarcodeScanner';
@@ -32,7 +33,7 @@ const DEVICE_CONFIG = {
         label: "TV Cloning",
         locations: ["Room", "Lobby", "Garage", "Bar", "Restaurant", "Gym", "Other"],
         idLabel: "Room Number or position",
-        serialLabel: "INFO (Optional)"
+        serialLabel: null // Removed ID/Info field as requested
     },
     camera: {
         label: "Camera Installation",
@@ -51,6 +52,49 @@ const DEVICE_CONFIG = {
         locations: ["Lobby", "Restaurant", "Bar", "Elevator", "Other"],
         idLabel: "Screen Name / Location",
         serialLabel: null // No serial needed, just photos
+    },
+    firewall: {
+        label: "Firewall Installation",
+        locations: ["Server Room", "MDF", "Other"],
+        idLabel: "Rack / Location",
+        serialLabel: "Serial Number"
+    },
+    sat: {
+        label: "SAT / Headend",
+        locations: ["Server Room", "Roof", "MDF"],
+        idLabel: "Dish / Unit ID",
+        serialLabel: "Receiver Serial"
+    },
+    iptel: {
+        label: "IP Telephone",
+        locations: ["Room", "Reception", "Office", "Other"],
+        idLabel: "Extension / Room",
+        serialLabel: "MAC Address",
+        noScanner: true // Scanner disabled as requested
+    },
+    "management server": {
+        label: "Management Server",
+        locations: ["Server Room", "MDF"],
+        idLabel: "Rack Unit / ID",
+        serialLabel: "Service Tag / Serial"
+    },
+    opc: {
+        label: "OPC Server",
+        locations: ["Server Room", "MDF"],
+        idLabel: "Rack Unit / ID",
+        serialLabel: "Service Tag / Serial"
+    },
+    "media encoder": {
+        label: "Media Encoder",
+        locations: ["Server Room", "MDF", "AV Rack"],
+        idLabel: "Rack Unit / ID",
+        serialLabel: "Serial Number"
+    },
+    headend: {
+        label: "Headend Component",
+        locations: ["Server Room", "MDF"],
+        idLabel: "Rack Unit / ID",
+        serialLabel: "Serial Number"
     }
 };
 
@@ -168,24 +212,24 @@ export default function InstallDevice() {
     };
 
     return (
-        <div className="min-h-screen bg-background pb-20">
-            <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b p-4 flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+        <div className="min-h-screen bg-black pb-20 text-gray-100">
+            <header className="sticky top-0 z-10 bg-black/80 backdrop-blur-md border-b border-gray-800 p-4 flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="text-gray-400 hover:text-white hover:bg-gray-800">
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <h1 className="font-bold text-lg">{config.label}</h1>
+                <h1 className="font-bold text-lg text-yellow-500">{config.label}</h1>
             </header>
 
             <main className="max-w-md mx-auto p-4">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Location Section */}
-                    <div className="space-y-4 bg-card p-4 rounded-xl border shadow-sm">
-                        <h2 className="font-semibold text-sm uppercase text-muted-foreground">Location Details</h2>
+                    <div className="space-y-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800 shadow-sm">
+                        <h2 className="font-semibold text-sm uppercase text-gray-500 tracking-wider">Location Details</h2>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1">Location Type</label>
+                            <label className="block text-sm font-medium mb-1 text-gray-400">Location Type</label>
                             <select
-                                className="w-full rounded-md border border-input bg-background px-3 py-2"
+                                className="w-full rounded-md border border-gray-700 bg-gray-800 text-white px-3 py-2 focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 outline-none transition-all"
                                 value={locationType}
                                 onChange={(e) => setLocationType(e.target.value)}
                             >
@@ -197,10 +241,10 @@ export default function InstallDevice() {
 
                         {locationType === 'Other' && (
                             <div>
-                                <label className="block text-sm font-medium mb-1">Specify Location</label>
+                                <label className="block text-sm font-medium mb-1 text-gray-400">Specify Location</label>
                                 <input
                                     type="text"
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2"
+                                    className="w-full rounded-md border border-gray-700 bg-gray-800 text-white px-3 py-2 focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 outline-none transition-all placeholder-gray-500"
                                     placeholder="e.g. Poolside"
                                     value={customLocation}
                                     onChange={(e) => setCustomLocation(e.target.value)}
@@ -209,56 +253,75 @@ export default function InstallDevice() {
                         )}
 
                         <div>
-                            <label className="block text-sm font-medium mb-1">{config.idLabel}</label>
+                            <label className="block text-sm font-medium mb-1 text-gray-400">{config.idLabel}</label>
                             <input
                                 type="text"
-                                className="w-full rounded-md border border-input bg-background px-3 py-2"
+                                className="w-full rounded-md border border-gray-700 bg-gray-800 text-white px-3 py-2 focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 outline-none transition-all placeholder-gray-500"
                                 placeholder={isSwitch ? "e.g. Rack A" : "e.g. 101"}
                                 value={locationId}
                                 onChange={(e) => setLocationId(e.target.value)}
                             />
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-white">
-                                {config.serialLabel}
-                            </label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    className="flex-1 rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-sm"
-                                    placeholder={`Scan or type ${config.serialLabel}`}
-                                    value={serialNumber}
-                                    onChange={(e) => setSerialNumber(e.target.value)}
-                                />
-                                <Button type="button" variant="secondary" size="icon" onClick={() => startScan('serial')}>
-                                    <ScanBarcode className="h-4 w-4" />
-                                </Button>
+
+                        {/* Merged Serial Input Logic */}
+                        {(config.serialLabel || isSwitch) && (
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-sm font-medium text-gray-400">
+                                        {config.serialLabel || "Serial Number"}
+                                    </label>
+                                    {!config.noScanner && (
+                                        <span className="text-xs text-yellow-500 font-bold animate-pulse">
+                                            📸 USE SCANNER FOR PRECISION
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        className="flex-1 rounded-md border border-gray-700 bg-gray-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 outline-none transition-all placeholder-gray-500"
+                                        placeholder={`Scan or type ${config.serialLabel || 'Serial'}`}
+                                        value={serialNumber}
+                                        onChange={(e) => setSerialNumber(e.target.value)}
+                                    />
+                                    {!config.noScanner && (
+                                        <Button
+                                            type="button"
+                                            variant="default"
+                                            onClick={() => startScan('serial')}
+                                            className="bg-yellow-500 text-black hover:bg-yellow-400 font-bold shadow-lg shadow-yellow-500/20 px-4 min-w-[100px]"
+                                        >
+                                            <ScanBarcode className="h-4 w-4 mr-2" />
+                                            SCAN
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Device Details */}
-                    <div className="space-y-4 bg-card p-4 rounded-xl border shadow-sm">
-                        <h2 className="font-semibold text-sm uppercase text-muted-foreground">Device Details</h2>
+                    <div className="space-y-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800 shadow-sm">
+                        <h2 className="font-semibold text-sm uppercase text-gray-500 tracking-wider">Device Details</h2>
 
                         {/* Switch Specific Fields */}
                         {isSwitch && (
                             <>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Switch Name</label>
+                                    <label className="block text-sm font-medium mb-1 text-gray-400">Switch Name</label>
                                     <input
                                         type="text"
-                                        className="w-full rounded-md border border-input bg-background px-3 py-2"
+                                        className="w-full rounded-md border border-gray-700 bg-gray-800 text-white px-3 py-2 focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 outline-none transition-all placeholder-gray-500"
                                         placeholder="e.g. SW-Lobby-01"
                                         value={switchName}
                                         onChange={(e) => setSwitchName(e.target.value)}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Position (U)</label>
+                                    <label className="block text-sm font-medium mb-1 text-gray-400">Position (U)</label>
                                     <input
                                         type="text"
-                                        className="w-full rounded-md border border-input bg-background px-3 py-2"
+                                        className="w-full rounded-md border border-gray-700 bg-gray-800 text-white px-3 py-2 focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 outline-none transition-all placeholder-gray-500"
                                         placeholder="e.g. U12"
                                         value={switchPosition}
                                         onChange={(e) => setSwitchPosition(e.target.value)}
@@ -267,27 +330,13 @@ export default function InstallDevice() {
                             </>
                         )}
 
-                        {/* Serial Number (if applicable) */}
-                        {config.serialLabel && (
-                            <div>
-                                <label className="block text-sm font-medium mb-1">{config.serialLabel}</label>
-                                <input
-                                    type="text"
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2"
-                                    placeholder="Enter Serial / MAC"
-                                    value={serialNumber}
-                                    onChange={(e) => setSerialNumber(e.target.value)}
-                                />
-                            </div>
-                        )}
-
                         {/* Port Info */}
                         {needsPortInfo && (
                             <div>
-                                <label className="block text-sm font-medium mb-1">Port / Patch Panel Info</label>
+                                <label className="block text-sm font-medium mb-1 text-gray-400">Port / Patch Panel Info</label>
                                 <input
                                     type="text"
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2"
+                                    className="w-full rounded-md border border-gray-700 bg-gray-800 text-white px-3 py-2 focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 outline-none transition-all placeholder-gray-500"
                                     placeholder="e.g. Panel A / Port 24"
                                     value={portInfo}
                                     onChange={(e) => setPortInfo(e.target.value)}
@@ -297,16 +346,16 @@ export default function InstallDevice() {
 
                         {/* Cloning Checkboxes */}
                         {isCloning && (
-                            <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                            <div className="space-y-3 p-3 bg-black/20 rounded-lg border border-gray-800">
                                 <div className="flex items-center space-x-2">
                                     <input
                                         type="checkbox"
                                         id="isUpdateDone"
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-yellow-500 focus:ring-yellow-500"
                                         checked={isUpdateDone}
                                         onChange={(e) => setIsUpdateDone(e.target.checked)}
                                     />
-                                    <label htmlFor="isUpdateDone" className="text-sm font-medium">
+                                    <label htmlFor="isUpdateDone" className="text-sm font-medium text-gray-300">
                                         Software Update Done
                                     </label>
                                 </div>
@@ -314,11 +363,11 @@ export default function InstallDevice() {
                                     <input
                                         type="checkbox"
                                         id="isCloningDone"
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-yellow-500 focus:ring-yellow-500"
                                         checked={isCloningDone}
                                         onChange={(e) => setIsCloningDone(e.target.checked)}
                                     />
-                                    <label htmlFor="isCloningDone" className="text-sm font-medium">
+                                    <label htmlFor="isCloningDone" className="text-sm font-medium text-gray-300">
                                         Cloning Done
                                     </label>
                                 </div>
@@ -326,24 +375,24 @@ export default function InstallDevice() {
                         )}
 
                         {/* Issue Reporting Checkbox */}
-                        <div className="flex items-center space-x-2 pt-2 border-t">
+                        <div className="flex items-center space-x-2 pt-2 border-t border-gray-800">
                             <input
                                 type="checkbox"
                                 id="hasIssue"
-                                className="h-4 w-4 rounded border-gray-300 text-red-500 focus:ring-red-500"
+                                className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-red-500 focus:ring-red-500"
                                 checked={hasIssue}
                                 onChange={(e) => setHasIssue(e.target.checked)}
                             />
-                            <label htmlFor="hasIssue" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-red-600">
+                            <label htmlFor="hasIssue" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-red-400/80 hover:text-red-400 transition-colors">
                                 Report an Issue
                             </label>
                         </div>
 
                         {hasIssue && (
                             <div className="animate-in slide-in-from-top-2">
-                                <label className="block text-sm font-medium mb-1 text-red-600">Issue Description</label>
+                                <label className="block text-sm font-medium mb-1 text-red-400">Issue Description</label>
                                 <textarea
-                                    className="w-full rounded-md border border-red-200 bg-red-50 px-3 py-2 focus:ring-red-500"
+                                    className="w-full rounded-md border border-red-900/30 bg-red-900/10 text-red-100 px-3 py-2 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all placeholder-red-300/30"
                                     placeholder="Describe the problem..."
                                     value={issueDescription}
                                     onChange={(e) => setIssueDescription(e.target.value)}
@@ -353,7 +402,7 @@ export default function InstallDevice() {
 
                         {/* Photos */}
                         <div className="space-y-4 pt-2">
-                            <h3 className="text-xs font-semibold uppercase text-muted-foreground">Photos</h3>
+                            <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider">Photos</h3>
 
                             {needsPortInfo && (
                                 <ImageUpload
@@ -382,7 +431,7 @@ export default function InstallDevice() {
                                 </>
                             )}
 
-                            {/* Serial Photo logic */}
+                            {/* Serial Photo logic (also for Switch) */}
                             {(config.serialLabel || isSwitch) && (
                                 <ImageUpload
                                     label="Photo: Serial Number / MAC"
@@ -400,9 +449,9 @@ export default function InstallDevice() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1">Notes / Comments</label>
+                            <label className="block text-sm font-medium mb-1 text-gray-400">Notes / Comments</label>
                             <textarea
-                                className="w-full rounded-md border border-input bg-background px-3 py-2"
+                                className="w-full rounded-md border border-gray-700 bg-gray-800 text-white px-3 py-2 focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 outline-none transition-all placeholder-gray-500"
                                 placeholder="Any additional info..."
                                 rows={2}
                                 value={notes}
@@ -412,10 +461,10 @@ export default function InstallDevice() {
                     </div>
 
                     <div className="flex gap-3">
-                        <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/dashboard')} disabled={loading}>
+                        <Button type="button" variant="outline" className="flex-1 bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white" onClick={() => navigate('/dashboard')} disabled={loading}>
                             Cancel
                         </Button>
-                        <Button type="submit" className="flex-1" disabled={loading}>
+                        <Button type="submit" className="flex-1 bg-yellow-500 text-black hover:bg-yellow-400 font-semibold" disabled={loading}>
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -434,6 +483,7 @@ export default function InstallDevice() {
                     onClose={() => setShowScanner(false)}
                 />
             )}
+            <Footer />
         </div>
     );
 }

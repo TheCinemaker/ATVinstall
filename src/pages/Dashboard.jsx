@@ -4,6 +4,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import ActivityDetailModal from '../components/ActivityDetailModal';
+import Footer from '../components/Footer';
 import TotalReportModal from '../components/TotalReportModal';
 import DailyReportModal from '../components/DailyReportModal';
 import { db } from '../firebase';
@@ -39,7 +40,8 @@ import {
     Phone,
     Map,
     MessageSquare,
-    Send
+    Send,
+    Download
 } from 'lucide-react';
 
 const getIcon = (type) => {
@@ -67,6 +69,18 @@ export default function Dashboard() {
     const { logout, user } = useAuth();
     const navigate = useNavigate();
 
+    // Loading state check
+    if (!currentProject) {
+        return (
+            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+                    <p>Loading project...</p>
+                </div>
+            </div>
+        );
+    }
+
     const [installations, setInstallations] = useState([]);
     const [issues, setIssues] = useState([]);
     const [selectedActivity, setSelectedActivity] = useState(null);
@@ -76,10 +90,22 @@ export default function Dashboard() {
     const [showTotalReport, setShowTotalReport] = useState(false);
     const [showDailyReport, setShowDailyReport] = useState(false);
     const [showAnnouncements, setShowAnnouncements] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('all'); // all, tv, ap, chromecast, cloning, issue
     const [unseenAnnouncements, setUnseenAnnouncements] = useState([]);
     const [newAnnouncement, setNewAnnouncement] = useState('');
+
+    // FIX: These are now defined and safe to use
+    const projectDevices = currentProject?.devices || [];
+
+    const installCounts = installations.reduce((acc, install) => {
+        const type = install.deviceType?.toLowerCase();
+        if (type) {
+            acc[type] = (acc[type] || 0) + 1;
+        }
+        return acc;
+    }, {});
 
     // Check for unseen announcements
     useEffect(() => {
@@ -221,112 +247,188 @@ export default function Dashboard() {
             date.getFullYear() === today.getFullYear();
     };
 
+    // Calculate Daily Stats
+    const todayStr = new Date().toDateString();
+
+    const dailyInstalls = installations.filter(i => new Date(i.createdAt).toDateString() === todayStr);
+    const dailyIssues = issues.filter(i => new Date(i.createdAt).toDateString() === todayStr);
+
     const dailyStats = {
-        total: 0,
-        issues: 0,
-        // Dynamic device counters will be added here
+        total: dailyInstalls.length,
+        issues: dailyIssues.length,
     };
 
-    // Initialize counters for all project devices
-    const projectDevices = currentProject?.devices || ['TV', 'AP'];
+    // Add per-device daily counts
     projectDevices.forEach(device => {
-        dailyStats[device.toLowerCase()] = 0;
+        dailyStats[device.toLowerCase()] = dailyInstalls.filter(i => i.deviceType?.toLowerCase() === device.toLowerCase()).length;
     });
 
-    activities.forEach(item => {
-        // Count resolved issues as "done" today if resolved today
-        const isResolvedToday = item.status === 'resolved' && isToday(item.resolvedAt);
-        const isCreatedToday = isToday(item.createdAt);
+    const reportItems = [
+        { label: "Total Report", icon: BarChart3, onClick: () => setShowTotalReport(true) },
+        { label: "Daily Report", icon: Calendar, onClick: () => setShowDailyReport(true) },
+    ];
 
-        if (isCreatedToday || isResolvedToday) {
-            if (item.type !== 'issue' || isResolvedToday) {
-                dailyStats.total++;
-            }
+    const projectItems = [
+        { label: "Project Info", icon: Info, onClick: () => setShowProjectInfo(true) },
+        { label: "Team Members", icon: Users, onClick: () => setShowTeamModal(true) },
+        { label: "Switch Project", icon: ArrowLeft, onClick: handleSwitchProject },
+        { label: "Logout", icon: LogOut, onClick: handleLogout, color: "text-red-500" },
+    ];
 
-            if (item.type === 'issue' || item.hasIssue) dailyStats.issues++; // Keep tracking total issues reported/active
-
-            // Increment specific device counter if it exists
-            if (item.deviceType && dailyStats[item.deviceType.toLowerCase()] !== undefined) {
-                dailyStats[item.deviceType.toLowerCase()]++;
-            }
-        }
-    });
-
-    if (!currentProject) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen gap-4">
-                <p>No project selected.</p>
-                <Button onClick={() => navigate('/projects')}>Select Project</Button>
-            </div>
-        );
-    }
 
     const menuItems = [
         {
             title: "Install TV",
             icon: Tv,
-            color: "text-blue-500",
-            bg: "bg-blue-500/10",
+            color: "text-white",
+            bg: "bg-blue-600/20 border border-blue-500/30",
             path: "/install/tv",
-            desc: "Photo + Serial"
+            type: "TV"
         },
         {
             title: "TV Cloning",
             icon: Copy,
-            color: "text-purple-500",
-            bg: "bg-purple-500/10",
+            color: "text-white",
+            bg: "bg-purple-600/20 border border-purple-500/30",
             path: "/install/cloning",
-            desc: "Update + Clone"
+            type: "TV Cloning"
         },
         {
             title: "Install AP",
             icon: Wifi,
-            color: "text-green-500",
-            bg: "bg-green-500/10",
+            color: "text-white",
+            bg: "bg-green-600/20 border border-green-500/30",
             path: "/install/ap",
-            desc: "Photo + MAC"
+            type: "AP"
         },
         {
             title: "Chromecast",
             icon: Cast,
-            color: "text-orange-500",
-            bg: "bg-orange-500/10",
+            color: "text-white",
+            bg: "bg-orange-600/20 border border-orange-500/30",
             path: "/install/chromecast",
-            desc: "Photo + Place"
+            type: "Chromecast"
         },
         {
             title: "Camera",
             icon: Camera,
-            color: "text-indigo-500",
-            bg: "bg-indigo-500/10",
+            color: "text-white",
+            bg: "bg-indigo-600/20 border border-indigo-500/30",
             path: "/install/camera",
-            desc: "Photo + MAC"
+            type: "Camera"
         },
         {
             title: "Switch",
             icon: ToggleLeft,
-            color: "text-cyan-500",
-            bg: "bg-cyan-500/10",
+            color: "text-white",
+            bg: "bg-cyan-600/20 border border-cyan-500/30",
             path: "/install/switch",
-            desc: "Pos + Serial"
+            type: "Switch"
         },
         {
             title: "Signage",
             icon: MonitorPlay,
-            color: "text-pink-500",
-            bg: "bg-pink-500/10",
+            color: "text-white",
+            bg: "bg-pink-600/20 border border-pink-500/30",
             path: "/install/signage",
-            desc: "Install + Config"
+            type: "Signage"
+        },
+        {
+            title: "Firewall",
+            icon: Shield,
+            color: "text-white",
+            bg: "bg-red-800/20 border border-red-700/30",
+            path: "/install/firewall",
+            type: "Firewall"
+        },
+        {
+            title: "SAT",
+            icon: Radio,
+            color: "text-white",
+            bg: "bg-gray-600/20 border border-gray-500/30",
+            path: "/install/sat",
+            type: "SAT"
+        },
+        {
+            title: "IPTEL",
+            icon: Phone,
+            color: "text-white",
+            bg: "bg-teal-600/20 border border-teal-500/30",
+            path: "/install/iptel",
+            type: "IPTEL"
+        },
+        {
+            title: "Mgmt Server",
+            icon: Server,
+            color: "text-white",
+            bg: "bg-slate-700/30 border border-slate-600/30",
+            path: "/install/management server",
+            type: "Management server"
+        },
+        {
+            title: "OPC",
+            icon: Disc,
+            color: "text-white",
+            bg: "bg-emerald-600/20 border border-emerald-500/30",
+            path: "/install/opc",
+            type: "OPC"
+        },
+        {
+            title: "Media Encoder",
+            icon: Radio,
+            color: "text-white",
+            bg: "bg-amber-600/20 border border-amber-500/30",
+            path: "/install/media encoder",
+            type: "Media Encoder"
+        },
+        {
+            title: "Headend",
+            icon: Server,
+            color: "text-white",
+            bg: "bg-violet-600/20 border border-violet-500/30",
+            path: "/install/headend",
+            type: "Headend"
         },
         {
             title: "Report Issue",
             icon: AlertTriangle,
-            color: "text-red-500",
-            bg: "bg-red-500/10",
+            color: "text-white",
+            bg: "bg-red-600/20 border border-red-500/30",
             path: "/report",
-            desc: "Log problems"
+            desc: "Log problems",
+            type: "ALWAYS_VISIBLE"
         }
-    ];
+    ].filter(item => {
+        if (item.type === 'ALWAYS_VISIBLE') return true;
+        return currentProject.devices?.includes(item.type);
+    }).map(item => {
+        if (item.type === 'ALWAYS_VISIBLE') return item;
+
+        // Map UI/Project type to Database type (handles "TV Cloning" -> "cloning" mismatch)
+        const dbType = item.type === 'TV Cloning' ? 'cloning' : item.type.toLowerCase();
+
+        // Calculate progress logic
+        // Targets are stored using the Project/UI Key (e.g. "TV Cloning")
+        const target = currentProject.targets?.[item.type] || 0;
+
+        // Installations and Issues are stored using the DB Key (e.g. "cloning")
+        const installed = installCounts[dbType] || 0;
+        const isDone = target > 0 && installed >= target;
+
+        // Check for unresolved issues for this device type
+        const hasActiveIssues = issues.some(i =>
+            i.status !== 'resolved' &&
+            i.deviceType?.toLowerCase() === dbType
+        );
+
+        return {
+            ...item,
+            desc: target > 0 ? `${installed} / ${target}` : `${installed} Installed`,
+            isDone: isDone,
+            hasActiveIssues: hasActiveIssues,
+            bg: hasActiveIssues ? "bg-red-900/20 border border-red-500/50" : (isDone ? "bg-green-600/30 border border-green-500/50" : item.bg)
+        };
+    });
 
     // Filter and Sort
     const filteredActivities = activities.filter(item => {
@@ -376,42 +478,108 @@ export default function Dashboard() {
     });
 
     return (
-        <div className="min-h-screen bg-background pb-20">
+        <div className="min-h-screen bg-black pb-20 text-gray-100">
             {/* Header */}
-            <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b p-4">
+            <header className="sticky top-0 z-10 bg-black/80 backdrop-blur-md border-b border-gray-800 p-4">
                 <div className="max-w-md mx-auto flex items-center justify-between">
-                    <div>
-                        <h1 className="font-bold text-lg truncate max-w-[200px]">{currentProject.name}</h1>
-                        <p className="text-xs text-muted-foreground">{currentProject.location}</p>
+                    <div className="flex-1 min-w-0 mr-2">
+                        <h1 className="font-bold text-lg truncate text-yellow-500">{currentProject.name}</h1>
+                        <p className="text-xs text-gray-400 truncate">{currentProject.location}</p>
                     </div>
-                    <div className="flex flex-wrap justify-end gap-2 max-w-[200px] sm:max-w-none">
-                        <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(true)} title="Team Chat" className="relative">
-                            <MessageSquare className="h-5 w-5" />
+                    <div className="flex items-center gap-2 shrink-0">
+                        {/* Always visible: Chat & Plans */}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowAnnouncements(true)}
+                            className="bg-gray-900 border border-gray-800 text-gray-300 hover:text-yellow-500 hover:bg-gray-800 relative px-3"
+                        >
+                            <MessageSquare className="h-5 w-5 mr-2" />
+                            <span className="font-medium">Chat</span>
                             {unseenAnnouncements.length > 0 && (
-                                <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse" />
+                                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse border-2 border-black" />
                             )}
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setShowProjectInfo(true)} title="Project Info">
-                            <Info className="h-5 w-5" />
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowBlueprints(true)}
+                            className="bg-gray-900 border border-gray-800 text-gray-300 hover:text-yellow-500 hover:bg-gray-800 px-3"
+                        >
+                            <Map className="h-5 w-5 mr-2" />
+                            <span className="font-medium">Plans</span>
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setShowBlueprints(true)} title="Blueprints">
-                            <Map className="h-5 w-5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setShowTotalReport(true)} title="Total Report">
-                            <BarChart3 className="h-5 w-5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setShowTeamModal(true)} title="Team">
-                            <Users className="h-5 w-5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={handleSwitchProject} title="Switch Project">
-                            <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-                            <LogOut className="h-5 w-5" />
+
+                        {/* Hamburger Menu */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setShowMenu(true)}
+                            className="text-gray-400 hover:text-white hover:bg-gray-800"
+                        >
+                            <ListFilter className="h-6 w-6" />
                         </Button>
                     </div>
                 </div>
             </header>
+
+            {/* Main Menu Modal (Hamburger) */}
+            {showMenu && (
+                <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200 flex flex-col">
+                    <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-gray-900">
+                        <h2 className="font-bold text-lg text-white">Menu</h2>
+                        <Button variant="ghost" size="icon" onClick={() => setShowMenu(false)} className="rounded-full text-gray-400 hover:text-white hover:bg-white/10">
+                            <X className="h-6 w-6" />
+                        </Button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-semibold uppercase text-gray-500 px-2">Project</h3>
+                            <div className="grid grid-cols-1 gap-2">
+                                {projectItems.map((item, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => {
+                                            item.onClick();
+                                            setShowMenu(false);
+                                        }}
+                                        className={`flex items-center gap-4 p-4 rounded-xl border border-gray-800 bg-gray-900/50 hover:bg-gray-800 transition-colors text-left ${item.color || 'text-white'}`}
+                                    >
+                                        <div className="p-2 rounded-full bg-black/40">
+                                            <item.icon className="h-5 w-5" />
+                                        </div>
+                                        <span className="font-medium">{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-semibold uppercase text-gray-500 px-2">Reports</h3>
+                            <div className="grid grid-cols-1 gap-2">
+                                {reportItems.map((item, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => {
+                                            item.onClick();
+                                            setShowMenu(false);
+                                        }}
+                                        className="flex items-center gap-4 p-4 rounded-xl border border-gray-800 bg-gray-900/50 hover:bg-gray-800 transition-colors text-left text-white"
+                                    >
+                                        <div className="p-2 rounded-full bg-black/40">
+                                            <item.icon className="h-5 w-5" />
+                                        </div>
+                                        <span className="font-medium">{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
             {/* Important Info Banner - REMOVED (Replaced by Announcements) */}
 
@@ -420,18 +588,18 @@ export default function Dashboard() {
             {unseenAnnouncements.length > 0 && !showAnnouncements && (
                 (() => {
                     const hasUrgent = unseenAnnouncements.some(a => a.text.toLowerCase().includes('@admin'));
-                    const borderColor = hasUrgent ? "border-red-600" : "border-yellow-500";
-                    const bgColor = hasUrgent ? "bg-red-950" : "bg-background"; // darker background for urgent
+                    const borderColor = hasUrgent ? "border-red-600" : "border-yellow-500/50";
+                    const bgColor = hasUrgent ? "bg-red-950" : "bg-gray-900"; // darker background for urgent
                     const headerBg = hasUrgent ? "bg-red-600/20 border-red-600/30" : "bg-yellow-500/10 border-yellow-500/20";
-                    const iconColor = hasUrgent ? "text-red-500" : "text-yellow-600 dark:text-yellow-500";
+                    const iconColor = hasUrgent ? "text-red-500" : "text-yellow-500";
                     const iconBg = hasUrgent ? "bg-red-600/20" : "bg-yellow-500/20";
-                    const titleColor = hasUrgent ? "text-red-500" : "text-yellow-700 dark:text-yellow-400";
-                    const subtitleColor = hasUrgent ? "text-red-400/80" : "text-yellow-600/80 dark:text-yellow-500/80";
-                    const btnColor = hasUrgent ? "bg-red-600 hover:bg-red-700" : "bg-yellow-600 hover:bg-yellow-700";
+                    const titleColor = hasUrgent ? "text-red-500" : "text-yellow-500";
+                    const subtitleColor = hasUrgent ? "text-red-400/80" : "text-gray-400";
+                    const btnColor = hasUrgent ? "bg-red-600 hover:bg-red-700" : "bg-yellow-500 hover:bg-yellow-400 text-black";
 
                     return (
                         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-                            <div className={`w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border-2 ${borderColor} ${bgColor}`}>
+                            <div className={`w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border ${borderColor} ${bgColor}`}>
                                 <div className={`p-4 ${headerBg} border-b flex items-center gap-3`}>
                                     <div className={`p-2 ${iconBg} rounded-full`}>
                                         <AlertTriangle className={`h-6 w-6 ${iconColor}`} />
@@ -448,19 +616,19 @@ export default function Dashboard() {
                                         const isUrgent = announcement.text.toLowerCase().includes('@admin');
                                         return (
                                             <div key={announcement.id} className="space-y-2">
-                                                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                                    <span className={`font-semibold ${isUrgent ? 'text-red-500' : 'text-primary'}`}>{announcement.author}</span>
+                                                <div className="flex items-center justify-between text-xs text-gray-400">
+                                                    <span className={`font-semibold ${isUrgent ? 'text-red-500' : 'text-yellow-500'}`}>{announcement.author}</span>
                                                     <span>{new Date(announcement.createdAt).toLocaleString()}</span>
                                                 </div>
-                                                <div className={`p-4 rounded-lg text-sm leading-relaxed border ${isUrgent ? 'bg-red-500/10 border-red-500/50 text-red-100' : 'bg-muted/50'}`}>
+                                                <div className={`p-4 rounded-lg text-sm leading-relaxed border ${isUrgent ? 'bg-red-500/10 border-red-500/50 text-red-100' : 'bg-black/40 border-gray-700 text-gray-200'}`}>
                                                     {announcement.text}
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
-                                <div className="p-4 border-t bg-muted/10">
-                                    <Button className={`w-full ${btnColor} text-white font-semibold`} onClick={handleMarkAllSeen}>
+                                <div className="p-4 border-t border-gray-800 bg-black/20">
+                                    <Button className={`w-full ${btnColor} font-semibold`} onClick={handleMarkAllSeen}>
                                         <CheckCircle2 className="h-4 w-4 mr-2" />
                                         I have read and understood
                                     </Button>
@@ -473,13 +641,13 @@ export default function Dashboard() {
 
             {/* Announcements Modal (Chat View) */}
             {showAnnouncements && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-background w-full max-w-md h-[80vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-                        <div className="p-4 border-b flex items-center justify-between bg-muted/30">
-                            <h2 className="font-bold text-lg flex items-center gap-2">
-                                <MessageSquare className="h-5 w-5" /> Team Announcements
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-gray-900 border border-gray-800 w-full max-w-md h-[80vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-black/20">
+                            <h2 className="font-bold text-lg flex items-center gap-2 text-white">
+                                <MessageSquare className="h-5 w-5 text-yellow-500" /> Team Announcements
                             </h2>
-                            <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(false)} className="rounded-full">
+                            <Button variant="ghost" size="icon" onClick={() => setShowAnnouncements(false)} className="rounded-full text-gray-400 hover:text-white hover:bg-white/10">
                                 <X className="h-5 w-5" />
                             </Button>
                         </div>
@@ -491,22 +659,22 @@ export default function Dashboard() {
                                         const isMe = announcement.author === (user?.displayName || 'Unknown');
                                         return (
                                             <div key={announcement.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                                                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isMe ? 'bg-primary text-primary-foreground' : 'bg-muted-foreground/20 text-muted-foreground'
+                                                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isMe ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-gray-300'
                                                     }`}>
                                                     {announcement.author.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div className={`flex flex-col max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-xs font-semibold text-foreground">{announcement.author}</span>
-                                                        <span className="text-[10px] text-muted-foreground">
+                                                        <span className="text-xs font-semibold text-gray-300">{announcement.author}</span>
+                                                        <span className="text-[10px] text-gray-500">
                                                             {new Date(announcement.createdAt).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
                                                     </div>
                                                     {(() => {
                                                         const isUrgent = announcement.text.toLowerCase().includes('@admin');
                                                         const bubbleClass = isMe
-                                                            ? isUrgent ? 'bg-red-600 text-white rounded-tr-none' : 'bg-primary text-primary-foreground rounded-tr-none'
-                                                            : isUrgent ? 'bg-red-600 text-white rounded-tl-none' : 'bg-muted text-foreground rounded-tl-none';
+                                                            ? isUrgent ? 'bg-red-600 text-white rounded-tr-none' : 'bg-yellow-500 text-black rounded-tr-none'
+                                                            : isUrgent ? 'bg-red-600 text-white rounded-tl-none' : 'bg-gray-800 text-gray-200 border border-gray-700 rounded-tl-none';
 
                                                         return (
                                                             <div className={`rounded-2xl px-4 py-2 text-sm shadow-sm ${bubbleClass}`}>
@@ -523,17 +691,17 @@ export default function Dashboard() {
                                     })}
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50">
+                                <div className="flex flex-col items-center justify-center h-full text-gray-500 opacity-50">
                                     <MessageSquare className="h-12 w-12 mb-2" />
                                     <p>No messages yet</p>
                                 </div>
                             )}
                         </div>
 
-                        <div className="p-3 border-t bg-background">
+                        <div className="p-3 border-t border-gray-800 bg-black/20">
                             <div className="flex gap-2 items-end">
                                 <textarea
-                                    className="flex-1 min-h-[44px] max-h-32 rounded-2xl border border-input bg-muted/50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none transition-all"
+                                    className="flex-1 min-h-[44px] max-h-32 rounded-2xl border border-gray-700 bg-gray-800 text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 resize-none transition-all placeholder-gray-500"
                                     placeholder="Type a message..."
                                     rows={1}
                                     value={newAnnouncement}
@@ -545,7 +713,7 @@ export default function Dashboard() {
                                         }
                                     }}
                                 />
-                                <Button size="icon" className="rounded-full h-11 w-11 shrink-0 shadow-sm" onClick={handlePostAnnouncement} disabled={!newAnnouncement.trim()}>
+                                <Button size="icon" className="rounded-full h-11 w-11 shrink-0 shadow-sm bg-yellow-500 hover:bg-yellow-400 text-black" onClick={handlePostAnnouncement} disabled={!newAnnouncement.trim()}>
                                     <Send className="h-5 w-5" />
                                 </Button>
                             </div>
@@ -556,47 +724,47 @@ export default function Dashboard() {
 
             {/* Project Info Modal */}
             {showProjectInfo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-background w-full max-w-sm rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-4 border-b flex items-center justify-between bg-muted/30">
-                            <h2 className="font-bold text-lg flex items-center gap-2">
-                                <Info className="h-5 w-5" /> Project Info
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-black/20">
+                            <h2 className="font-bold text-lg flex items-center gap-2 text-white">
+                                <Info className="h-5 w-5 text-yellow-500" /> Project Info
                             </h2>
-                            <Button variant="ghost" size="icon" onClick={() => setShowProjectInfo(false)} className="rounded-full">
+                            <Button variant="ghost" size="icon" onClick={() => setShowProjectInfo(false)} className="rounded-full text-gray-400 hover:text-white hover:bg-white/10">
                                 <X className="h-5 w-5" />
                             </Button>
                         </div>
                         <div className="p-4 space-y-6">
                             {/* Manager */}
                             <div className="space-y-2">
-                                <h3 className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                                <h3 className="text-xs font-semibold uppercase text-gray-500 flex items-center gap-2">
                                     <Users className="h-3 w-3" /> Project Manager
                                 </h3>
-                                <div className="p-3 bg-card rounded-lg border">
+                                <div className="p-3 bg-black/40 rounded-lg border border-gray-700 text-white">
                                     <p className="font-medium">{currentProject.manager || 'Not assigned'}</p>
                                 </div>
                             </div>
 
                             {/* Contacts */}
                             <div className="space-y-2">
-                                <h3 className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                                <h3 className="text-xs font-semibold uppercase text-gray-500 flex items-center gap-2">
                                     <Users className="h-3 w-3" /> Contacts
                                 </h3>
                                 <div className="space-y-2">
                                     {currentProject.contacts && currentProject.contacts.length > 0 ? (
                                         currentProject.contacts.map((contact, idx) => (
-                                            <div key={idx} className="flex justify-between items-center p-3 bg-card rounded-lg border">
+                                            <div key={idx} className="flex justify-between items-center p-3 bg-black/40 rounded-lg border border-gray-700">
                                                 <div>
-                                                    <p className="font-medium text-sm">{contact.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{contact.phone}</p>
+                                                    <p className="font-medium text-sm text-white">{contact.name}</p>
+                                                    <p className="text-xs text-gray-400">{contact.phone}</p>
                                                 </div>
-                                                <a href={`tel:${contact.phone}`} className="p-2 bg-primary/10 rounded-full text-primary hover:bg-primary/20">
+                                                <a href={`tel:${contact.phone}`} className="p-2 bg-yellow-500/10 rounded-full text-yellow-500 hover:bg-yellow-500/20">
                                                     <Phone className="h-4 w-4" />
                                                 </a>
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-sm text-muted-foreground italic">No contacts listed.</p>
+                                        <p className="text-sm text-gray-500 italic">No contacts listed.</p>
                                     )}
                                 </div>
                             </div>
@@ -607,13 +775,13 @@ export default function Dashboard() {
 
             {/* Blueprints Modal */}
             {showBlueprints && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-background w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                        <div className="p-4 border-b flex items-center justify-between bg-muted/30">
-                            <h2 className="font-bold text-lg flex items-center gap-2">
-                                <Map className="h-5 w-5" /> Blueprints & Plans
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-gray-900 border border-gray-800 w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-black/20">
+                            <h2 className="font-bold text-lg flex items-center gap-2 text-white">
+                                <Map className="h-5 w-5 text-yellow-500" /> Blueprints & Plans
                             </h2>
-                            <Button variant="ghost" size="icon" onClick={() => setShowBlueprints(false)} className="rounded-full">
+                            <Button variant="ghost" size="icon" onClick={() => setShowBlueprints(false)} className="rounded-full text-gray-400 hover:text-white hover:bg-white/10">
                                 <X className="h-5 w-5" />
                             </Button>
                         </div>
@@ -624,23 +792,23 @@ export default function Dashboard() {
                                         <div key={idx} className="space-y-2">
                                             <div className="relative group aspect-video bg-black rounded-lg overflow-hidden border border-gray-700">
                                                 <img src={bp.data} alt={bp.name} className="w-full h-full object-contain" />
-                                                <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                <div className="absolute inset-0 bg-black/0 hover:bg-black/60 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                                                     <a
                                                         href={bp.data}
                                                         download={bp.name}
-                                                        className="bg-background/80 text-foreground p-2 rounded-full shadow-lg hover:bg-background transition-colors"
+                                                        className="bg-yellow-500 text-black p-2 rounded-full shadow-lg hover:bg-yellow-400 transition-colors"
                                                         title="Download"
                                                     >
                                                         <Download className="h-5 w-5" />
                                                     </a>
                                                 </div>
                                             </div>
-                                            <p className="text-sm font-medium text-center truncate">{bp.name}</p>
+                                            <p className="text-sm font-medium text-center truncate text-gray-300">{bp.name}</p>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-12 text-muted-foreground">
+                                <div className="text-center py-12 text-gray-500">
                                     <Map className="h-12 w-12 mx-auto mb-2 opacity-20" />
                                     <p>No blueprints uploaded for this project.</p>
                                 </div>
@@ -652,13 +820,13 @@ export default function Dashboard() {
 
             {/* Team Modal */}
             {showTeamModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-background w-full max-w-sm rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-4 border-b flex items-center justify-between bg-muted/30">
-                            <h2 className="font-bold text-lg flex items-center gap-2">
-                                <Users className="h-5 w-5" /> Project Team
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-black/20">
+                            <h2 className="font-bold text-lg flex items-center gap-2 text-white">
+                                <Users className="h-5 w-5 text-yellow-500" /> Project Team
                             </h2>
-                            <Button variant="ghost" size="icon" onClick={() => setShowTeamModal(false)} className="rounded-full">
+                            <Button variant="ghost" size="icon" onClick={() => setShowTeamModal(false)} className="rounded-full text-gray-400 hover:text-white hover:bg-white/10">
                                 <X className="h-5 w-5" />
                             </Button>
                         </div>
@@ -670,14 +838,14 @@ export default function Dashboard() {
                                         if (members.length === 0) return null;
                                         return (
                                             <div key={role} className="space-y-2">
-                                                <h3 className="text-xs font-semibold uppercase text-muted-foreground">{role}</h3>
+                                                <h3 className="text-xs font-semibold uppercase text-gray-500">{role}</h3>
                                                 <div className="space-y-2">
                                                     {members.map((member, idx) => (
-                                                        <div key={idx} className="flex items-center gap-3 p-2 bg-card rounded-lg border">
-                                                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                                        <div key={idx} className="flex items-center gap-3 p-2 bg-black/40 rounded-lg border border-gray-700">
+                                                            <div className="h-8 w-8 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500 font-bold text-xs">
                                                                 {member.name.charAt(0)}
                                                             </div>
-                                                            <span className="font-medium text-sm">{member.name}</span>
+                                                            <span className="font-medium text-sm text-white">{member.name}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -686,7 +854,7 @@ export default function Dashboard() {
                                     })}
                                 </>
                             ) : (
-                                <div className="text-center py-8 text-muted-foreground">
+                                <div className="text-center py-8 text-gray-500">
                                     <Users className="h-12 w-12 mx-auto mb-2 opacity-20" />
                                     <p>No team members assigned.</p>
                                 </div>
@@ -725,20 +893,20 @@ export default function Dashboard() {
                     onClick={() => setShowDailyReport(true)}
                     title="View Daily Report"
                 >
-                    <div className="bg-card p-3 rounded-xl border shadow-sm text-center">
-                        <p className="text-2xl font-bold text-primary">{dailyStats.total}</p>
-                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">Today</p>
+                    <div className="bg-gray-900 p-3 rounded-xl border border-gray-800 shadow-sm text-center">
+                        <p className="text-2xl font-bold text-yellow-500">{dailyStats.total}</p>
+                        <p className="text-[10px] uppercase text-gray-500 font-semibold">Today</p>
                     </div>
                     {projectDevices.slice(0, 3).map(device => (
-                        <div key={device} className="bg-muted/30 p-3 rounded-xl border text-center">
-                            <p className="text-xl font-bold">{dailyStats[device.toLowerCase()] || 0}</p>
-                            <p className="text-[10px] uppercase text-muted-foreground font-semibold">{device}s</p>
+                        <div key={device} className="bg-black/40 p-3 rounded-xl border border-gray-800 text-center">
+                            <p className="text-xl font-bold text-white">{dailyStats[device.toLowerCase()] || 0}</p>
+                            <p className="text-[10px] uppercase text-gray-500 font-semibold">{device}s</p>
                         </div>
                     ))}
                     {dailyStats.issues > 0 && (
-                        <div className="bg-red-500/10 p-3 rounded-xl border border-red-100 dark:border-red-900 text-center">
-                            <p className="text-xl font-bold text-red-600 dark:text-red-400">{dailyStats.issues}</p>
-                            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Issues</p>
+                        <div className="bg-red-900/20 p-3 rounded-xl border border-red-900/50 text-center">
+                            <p className="text-xl font-bold text-red-500">{dailyStats.issues}</p>
+                            <p className="text-[10px] uppercase text-red-400/60 font-semibold">Issues</p>
                         </div>
                     )}
                 </div>
@@ -748,14 +916,27 @@ export default function Dashboard() {
                         <div
                             key={item.title}
                             onClick={() => navigate(item.path)}
-                            className="flex flex-col items-center justify-center p-4 rounded-xl border bg-card shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 text-center gap-2"
+                            className={`p-4 rounded-xl border shadow-sm transition-all cursor-pointer active:scale-95 text-center gap-3 group flex flex-col items-center ${item.isDone
+                                ? 'bg-green-900/20 border-green-500/50 hover:bg-green-900/30'
+                                : 'bg-gray-900 border-gray-800 hover:border-yellow-500/50'
+                                }`}
                         >
-                            <div className={`p-3 rounded-full ${item.bg} ${item.color}`}>
-                                <item.icon className="h-6 w-6" />
+                            <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${item.bg} group-hover:scale-110 transition-transform duration-200 relative`}>
+                                <item.icon className={`h-6 w-6 ${item.color}`} />
+                                {item.hasActiveIssues && (
+                                    <div className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-black shadow-sm z-10 animate-pulse">
+                                        ISSUE
+                                    </div>
+                                )}
+                                {item.isDone && !item.hasActiveIssues && (
+                                    <div className="absolute -bottom-1 -right-1 bg-green-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-black shadow-sm z-10">
+                                        DONE
+                                    </div>
+                                )}
                             </div>
                             <div>
-                                <h3 className="font-semibold text-sm">{item.title}</h3>
-                                <p className="text-xs text-muted-foreground">{item.desc}</p>
+                                <h3 className={`font-semibold text-sm ${item.hasActiveIssues ? 'text-red-400' : (item.isDone ? 'text-green-400' : 'text-gray-100')}`}>{item.title}</h3>
+                                <p className={`text-xs uppercase mt-1 ${item.hasActiveIssues ? 'text-red-500/80 font-bold' : (item.isDone ? 'text-green-500/80 font-bold' : 'text-gray-300')}`}>{item.desc}</p>
                             </div>
                         </div>
                     ))}
@@ -763,17 +944,17 @@ export default function Dashboard() {
 
                 {/* Activity Feed */}
                 <div className="pt-4">
-                    <h2 className="font-semibold mb-4 flex items-center justify-between">
+                    <h2 className="font-semibold mb-4 flex items-center justify-between text-yellow-500">
                         Activity
                     </h2>
 
                     {/* Search Bar */}
                     <div className="relative mb-4">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                         <input
                             type="text"
                             placeholder="Search room, serial, port..."
-                            className="w-full pl-9 pr-4 py-2 rounded-full border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full pl-9 pr-4 py-2 rounded-full border border-gray-700 bg-gray-900 text-sm text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-600"
                             value={searchQuery}
                             onChange={(e) => {
                                 setSearchQuery(e.target.value);
@@ -788,18 +969,18 @@ export default function Dashboard() {
                     <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
                         <button
                             onClick={() => setActiveTab('all')}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${activeTab === 'all'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${activeTab === 'all'
+                                ? 'bg-yellow-500 text-black border-yellow-500'
+                                : 'bg-gray-900 text-gray-400 border-gray-800 hover:border-gray-700'
                                 }`}
                         >
                             All
                         </button>
                         <button
                             onClick={() => setActiveTab('issues')}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${activeTab === 'issues'
-                                ? 'bg-red-500 text-white'
-                                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${activeTab === 'issues'
+                                ? 'bg-red-600 text-white border-red-600'
+                                : 'bg-gray-900 text-gray-400 border-gray-800 hover:border-gray-700'
                                 }`}
                         >
                             Issues
@@ -808,9 +989,9 @@ export default function Dashboard() {
                             <button
                                 key={device}
                                 onClick={() => setActiveTab(device.toLowerCase())}
-                                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${activeTab === device.toLowerCase()
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${activeTab === device.toLowerCase()
+                                    ? 'bg-yellow-500 text-black border-yellow-500'
+                                    : 'bg-gray-900 text-gray-400 border-gray-800 hover:border-gray-700'
                                     }`}
                             >
                                 {device}
@@ -820,7 +1001,7 @@ export default function Dashboard() {
 
                     <div className="space-y-3">
                         {sortedActivities.length === 0 ? (
-                            <div className="text-sm text-muted-foreground text-center py-8 border rounded-xl border-dashed">
+                            <div className="text-sm text-gray-500 text-center py-8 border border-gray-800 rounded-xl border-dashed bg-gray-900/50">
                                 No activity found in this category.
                             </div>
                         ) : (
@@ -831,34 +1012,34 @@ export default function Dashboard() {
                                 return (
                                     <div
                                         key={item.id}
-                                        className={`flex items-start space-x-4 p-3 bg-card rounded-xl border shadow-sm hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98] transition-transform ${isResolved ? 'border-green-200 bg-green-50/30' : ''}`}
+                                        className={`flex items-start space-x-4 p-3 bg-gray-900 rounded-xl border border-gray-800 shadow-sm hover:border-yellow-500/30 transition-all cursor-pointer active:scale-[0.98] ${isResolved ? 'border-green-900/50 bg-green-900/10' : ''}`}
                                         onClick={() => setSelectedActivity(item)}
                                     >
-                                        <div className={`p-2 rounded-full ${isResolved ? 'bg-green-100 text-green-600' : (item.type === 'issue' || item.hasIssue ? 'bg-red-100 text-red-600' : 'bg-primary/10 text-primary')}`}>
+                                        <div className={`p-2 rounded-full ${isResolved ? 'bg-green-900/20 text-green-500' : (item.type === 'issue' || item.hasIssue ? 'bg-red-900/20 text-red-500' : 'bg-gray-800 text-yellow-500')}`}>
                                             {isResolved ? <CheckCircle2 className="h-5 w-5" /> : getIcon(item.type)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-start">
-                                                <h3 className="font-semibold text-sm truncate pr-2 flex items-center gap-2">
-                                                    <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-xs text-foreground">
+                                                <h3 className="font-semibold text-sm truncate pr-2 flex items-center gap-2 text-gray-200">
+                                                    <span className="font-mono bg-black/40 border border-gray-700 px-1.5 py-0.5 rounded text-xs text-gray-300">
                                                         {item.locationId || item.location || 'N/A'}
                                                     </span>
                                                     {item.type === 'issue' ? 'Issue' : item.deviceType?.toUpperCase()}
                                                 </h3>
-                                                <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
+                                                <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
                                                     {displayDate.toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
-                                            <p className="text-muted-foreground truncate text-xs mt-1">
+                                            <p className="text-gray-400 truncate text-xs mt-1">
                                                 {item.type === 'issue' ? item.description : `${item.locationType} • ${item.installerName || item.installer?.split('@')[0]}`}
                                             </p>
                                             {(item.type === 'issue' || item.hasIssue) && !isResolved && (
-                                                <p className="text-xs text-red-500 mt-1 font-medium">
+                                                <p className="text-xs text-red-400 mt-1 font-medium">
                                                     {item.issueDescription ? `- ${item.issueDescription}` : ''}
                                                 </p>
                                             )}
                                             {isResolved && (
-                                                <p className="text-xs text-green-600 mt-1 font-medium">
+                                                <p className="text-xs text-green-500 mt-1 font-medium">
                                                     Resolved
                                                 </p>
                                             )}
@@ -875,6 +1056,7 @@ export default function Dashboard() {
                 activity={selectedActivity}
                 onClose={() => setSelectedActivity(null)}
             />
+            <Footer />
         </div>
     );
 }
