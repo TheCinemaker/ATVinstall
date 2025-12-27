@@ -276,19 +276,24 @@ export default function ActivityDetailModal({ activity, onClose }) {
                                         )}
                                     </div>
 
-                                    {/* Original Photos */}
-                                    {activity.photos && activity.photos.length > 0 && (
+                                    {/* Unified Photos (Installs & Issues) */}
+                                    {photos.length > 0 && (
                                         <div>
                                             <p className="text-xs text-gray-500 mb-2">Attached Photos</p>
                                             <div className="grid grid-cols-2 gap-2">
-                                                {activity.photos.map((url, idx) => (
-                                                    <div key={idx} className="aspect-video bg-black rounded-lg overflow-hidden border border-gray-800 relative group">
+                                                {photos.map((photo, idx) => (
+                                                    <div key={idx} className="relative group aspect-video bg-black rounded-lg overflow-hidden border border-gray-800">
                                                         <img
-                                                            src={url}
-                                                            alt={`Report ${idx + 1}`}
+                                                            src={photo.url}
+                                                            alt={photo.label}
                                                             className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity cursor-zoom-in"
-                                                            onClick={() => setZoomedImage(url)}
+                                                            onClick={() => setZoomedImage(photo.url)}
                                                         />
+                                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1">
+                                                            <p className="text-[10px] text-white text-center truncate px-1">
+                                                                {photo.label}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
