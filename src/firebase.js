@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 // TODO: Replace with your actual Firebase config keys
@@ -19,20 +19,13 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+// export const db = getFirestore(app); // Deprecated usage check
 
-// Enable Offline Persistence
-try {
-    enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code == 'failed-precondition') {
-            console.log('Persistence failed: Multiple tabs open');
-        } else if (err.code == 'unimplemented') {
-            console.log('Persistence not supported by browser');
-        }
-    });
-} catch (e) {
-    console.log("Persistence init error", e);
-}
+// Initialize Firestore with persistent cache
+export const db = initializeFirestore(app, {
+    localCache: persistentLocalCache()
+});
+
+export const storage = getStorage(app);
 
 export default app;

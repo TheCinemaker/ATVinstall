@@ -219,200 +219,138 @@ export default function ActivityDetailModal({ activity, onClose }) {
                             </div>
                         </div>
                     ) : (
-                        <>
-                            {/* User Info (Installer or Reporter) */}
-                            <div className="flex items-center gap-3 p-3 bg-gray-900/50 rounded-lg border border-gray-800 shadow-sm">
-                                <div className="h-10 w-10 rounded-full bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
-                                    <User className="h-5 w-5 text-yellow-500" />
+                        <div className="space-y-8">
+                            {/* --- SECTION 1: THE REPORT --- */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                                        <AlertTriangle className="h-3 w-3" /> Issue Report
+                                    </h3>
+                                    <span className="text-xs text-gray-500">{formatDate(activity.createdAt)}</span>
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-300">{isIssue ? 'Reported By' : 'Installer'}</p>
-                                    {isEditing ? (
-                                        <input
-                                            className="w-full rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm text-white focus:border-yellow-500 outline-none"
-                                            value={editInstaller}
-                                            onChange={(e) => setEditInstaller(e.target.value)}
-                                        />
-                                    ) : (
-                                        <p className="text-sm text-gray-400">{activity.createdBy || activity.reportedBy || activity.installerName || activity.installer || 'Unknown'}</p>
-                                    )}
-                                </div>
-                            </div>
 
-                            {/* Resolved By Info */}
-                            {isResolved && (
-                                <div className="flex items-center gap-3 p-3 bg-green-900/10 rounded-lg border border-green-900/30 shadow-sm">
-                                    <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20">
-                                        <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium text-green-400">Resolved By</p>
-                                        <div className="flex justify-between items-center">
-                                            <p className="text-sm text-gray-300">{activity.resolvedBy || 'Unknown'}</p>
-                                            <p className="text-xs text-gray-500">{formatDate(activity.resolvedAt)}</p>
+                                <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-4 space-y-4">
+                                    {/* Reporter Info */}
+                                    <div className="flex items-center gap-3 pb-4 border-b border-gray-800">
+                                        <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                                            <User className="h-5 w-5 text-red-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-white">
+                                                {activity.createdBy || activity.reportedBy || 'Unknown User'}
+                                            </p>
+                                            <p className="text-xs text-gray-500">reported this issue</p>
                                         </div>
                                     </div>
-                                </div>
-                            )}
 
-                            {/* Location Details */}
-                            <div className="space-y-3">
-                                <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider flex items-center gap-2">
-                                    <MapPin className="h-3 w-3" /> Location Details
-                                </h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-800">
-                                        <p className="text-xs text-gray-500">Type</p>
-                                        <p className="font-medium text-white">{activity.locationType || 'N/A'}</p>
+                                    {/* Location */}
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-1">Location</p>
+                                        <div className="flex items-center gap-2 text-gray-300">
+                                            <MapPin className="h-4 w-4 text-gray-500" />
+                                            {isEditing ? (
+                                                <input
+                                                    className="bg-gray-800 border-gray-700 rounded px-2 py-1 text-sm text-white"
+                                                    value={editLocation}
+                                                    onChange={(e) => setEditLocation(e.target.value)}
+                                                />
+                                            ) : (
+                                                <span>{activity.locationId || activity.location || 'N/A'}</span>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-800">
-                                        <p className="text-xs text-gray-500">ID / Room</p>
+
+                                    {/* Description */}
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-1">Description</p>
                                         {isEditing ? (
-                                            <input
-                                                className="w-full rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm mt-1 text-white focus:border-yellow-500 outline-none"
-                                                value={editLocation}
-                                                onChange={(e) => setEditLocation(e.target.value)}
+                                            <textarea
+                                                className="w-full bg-gray-800 border-gray-700 rounded p-2 text-sm text-white"
+                                                value={editDescription}
+                                                onChange={(e) => setEditDescription(e.target.value)}
                                             />
                                         ) : (
-                                            <p className="font-medium text-white">{activity.locationId || activity.location || 'N/A'}</p>
+                                            <div className="text-sm text-gray-300 leading-relaxed bg-black/30 p-3 rounded-lg border border-white/5">
+                                                {activity.notes || activity.description || activity.issueDescription || "No description provided."}
+                                            </div>
                                         )}
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Device / Technical Details */}
-                            {!isIssue && (
-                                <div className="space-y-3">
-                                    <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider flex items-center gap-2">
-                                        <Hash className="h-3 w-3" /> Technical Details
-                                    </h3>
-                                    <div className="space-y-2 bg-gray-800/30 p-3 rounded-lg border border-gray-800">
-                                        {(activity.serialNumber || isEditing) && (
-                                            <div className="flex justify-between items-center py-2 border-b border-gray-700 last:border-0">
-                                                <span className="text-sm text-gray-500">Serial / MAC</span>
-                                                {isEditing ? (
-                                                    <div className="flex gap-2">
-                                                        <input
-                                                            className="w-32 rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm font-mono text-right text-white focus:border-yellow-500 outline-none"
-                                                            value={editSerial}
-                                                            onChange={(e) => setEditSerial(e.target.value)}
-                                                            placeholder="Serial"
+                                    {/* Original Photos */}
+                                    {activity.photos && activity.photos.length > 0 && (
+                                        <div>
+                                            <p className="text-xs text-gray-500 mb-2">Attached Photos</p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {activity.photos.map((url, idx) => (
+                                                    <div key={idx} className="aspect-video bg-black rounded-lg overflow-hidden border border-gray-800 relative group">
+                                                        <img
+                                                            src={url}
+                                                            alt={`Report ${idx + 1}`}
+                                                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity cursor-zoom-in"
+                                                            onClick={() => setZoomedImage(url)}
                                                         />
-                                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-yellow-500" onClick={() => startScan('serial')}>
-                                                            <ScanBarcode className="h-4 w-4" />
-                                                        </Button>
                                                     </div>
-                                                ) : (
-                                                    <span className="text-sm font-mono text-yellow-500">{activity.serialNumber}</span>
-                                                )}
+                                                ))}
                                             </div>
-                                        )}
-                                        {isEditing && (
-                                            <div className="flex justify-between items-center py-2 border-b border-gray-700 last:border-0">
-                                                <span className="text-sm text-gray-500">MAC Address</span>
-                                                <div className="flex gap-2">
-                                                    <input
-                                                        className="w-32 rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm font-mono text-right text-white focus:border-yellow-500 outline-none"
-                                                        value={editMac}
-                                                        onChange={(e) => setEditMac(e.target.value)}
-                                                        placeholder="MAC"
-                                                    />
-                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-yellow-500" onClick={() => startScan('mac')}>
-                                                        <ScanBarcode className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {activity.portInfo && (
-                                            <div className="flex justify-between py-2 border-b border-gray-700 last:border-0">
-                                                <span className="text-sm text-gray-500">Port Info</span>
-                                                <span className="text-sm font-medium text-white">{activity.portInfo}</span>
-                                            </div>
-                                        )}
-                                        {activity.switchName && (
-                                            <div className="flex justify-between py-2 border-b border-gray-700 last:border-0">
-                                                <span className="text-sm text-gray-500">Switch Name</span>
-                                                <span className="text-sm font-medium text-white">{activity.switchName}</span>
-                                            </div>
-                                        )}
-                                        {activity.switchPosition && (
-                                            <div className="flex justify-between py-2 border-b border-gray-700 last:border-0">
-                                                <span className="text-sm text-gray-500">Position</span>
-                                                <span className="text-sm font-medium text-white">{activity.switchPosition}</span>
-                                            </div>
-                                        )}
-                                        {activity.deviceType === 'cloning' && (
-                                            <div className="flex justify-between py-2 border-b border-gray-700 last:border-0">
-                                                <span className="text-sm text-gray-500">Status</span>
-                                                <div className="flex gap-2">
-                                                    {activity.isUpdateDone && <span className="text-xs bg-blue-900/30 text-blue-400 px-2 py-0.5 rounded-full border border-blue-900/50">Updated</span>}
-                                                    {activity.isCloningDone && <span className="text-xs bg-purple-900/30 text-purple-400 px-2 py-0.5 rounded-full border border-purple-900/50">Cloned</span>}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Notes / Description */}
-                            {(activity.notes || activity.description || activity.issueDescription || isEditing) && (
-                                <div className="space-y-3">
-                                    <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider flex items-center gap-2">
-                                        <FileText className="h-3 w-3" /> {isIssue ? 'Description' : 'Notes'}
-                                    </h3>
-                                    {isEditing ? (
-                                        <textarea
-                                            className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm leading-relaxed text-white focus:border-yellow-500 outline-none"
-                                            rows={4}
-                                            value={editDescription}
-                                            onChange={(e) => setEditDescription(e.target.value)}
-                                        />
-                                    ) : (
-                                        <div className="p-3 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg text-sm leading-relaxed">
-                                            {activity.notes || activity.description || activity.issueDescription}
                                         </div>
                                     )}
                                 </div>
-                            )}
+                            </div>
 
-                            {/* Resolution Details */}
+                            {/* --- SECTION 2: THE RESOLUTION --- */}
                             {isResolved && (
-                                <div className="space-y-3">
-                                    <h3 className="text-xs font-semibold uppercase text-green-500 tracking-wider flex items-center gap-2">
-                                        <CheckCircle2 className="h-3 w-3" /> Resolution
-                                    </h3>
-                                    <div className="p-3 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg text-sm leading-relaxed">
-                                        {activity.resolutionNotes}
+                                <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-500 delay-100">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-xs font-bold uppercase text-green-500 tracking-wider flex items-center gap-2">
+                                            <CheckCircle2 className="h-3 w-3" /> Resolution
+                                        </h3>
+                                        <span className="text-xs text-green-500/70">{formatDate(activity.resolvedAt)}</span>
                                     </div>
-                                </div>
-                            )}
 
-                            {/* Photos */}
-                            {photos.length > 0 && (
-                                <div className="space-y-3">
-                                    <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider flex items-center gap-2">
-                                        <ImageIcon className="h-3 w-3" /> Photos
-                                    </h3>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {photos.map((photo, idx) => (
-                                            <div key={idx} className="space-y-1">
-                                                <p className="text-[10px] text-gray-500 ml-1 uppercase">{photo.label}</p>
-                                                <div className="rounded-lg overflow-hidden border border-gray-800 shadow-sm bg-black">
-                                                    <img
-                                                        src={photo.url}
-                                                        alt={photo.label}
-                                                        className="w-full h-auto object-cover max-h-64 opacity-90 hover:opacity-100 transition-opacity cursor-zoom-in"
-                                                        loading="lazy"
-                                                        onClick={() => setZoomedImage(photo.url)}
-                                                    />
+                                    <div className="bg-green-900/10 rounded-xl border border-green-500/20 p-4 space-y-4">
+                                        {/* Resolver Info */}
+                                        <div className="flex items-center gap-3 pb-4 border-b border-green-500/20">
+                                            <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/30">
+                                                <CheckCircle2 className="h-5 w-5 text-green-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-white">
+                                                    {activity.resolvedBy || 'Unknown User'}
+                                                </p>
+                                                <p className="text-xs text-green-400/70">resolved this issue</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Notes */}
+                                        <div>
+                                            <p className="text-xs text-green-500/70 mb-1">Resolution Details</p>
+                                            <div className="text-sm text-gray-200 leading-relaxed bg-black/30 p-3 rounded-lg border border-green-500/10">
+                                                {activity.resolutionNotes || "No details provided."}
+                                            </div>
+                                        </div>
+
+                                        {/* Resolution Photos */}
+                                        {activity.resolutionPhotos && activity.resolutionPhotos.length > 0 && (
+                                            <div>
+                                                <p className="text-xs text-green-500/70 mb-2">Proof of Fix</p>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {activity.resolutionPhotos.map((url, idx) => (
+                                                        <div key={idx} className="aspect-video bg-black rounded-lg overflow-hidden border border-green-900/50 relative group">
+                                                            <img
+                                                                src={url}
+                                                                alt={`Resolution ${idx + 1}`}
+                                                                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity cursor-zoom-in"
+                                                                onClick={() => setZoomedImage(url)}
+                                                            />
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 </div>
                             )}
-                        </>
+                        </div>
                     )}
                 </div>
 
@@ -443,7 +381,7 @@ export default function ActivityDetailModal({ activity, onClose }) {
                                     Resolve Issue
                                 </Button>
                             )}
-                            <Button className={isIssue && !isResolved ? "flex-1" : "w-full bg-gray-800 hover:bg-gray-700 text-white"} variant={isIssue && !isResolved ? "outline" : "default"} onClick={onClose}>
+                            <Button className={isIssue && !isResolved ? "flex-1 bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white" : "w-full bg-gray-800 hover:bg-gray-700 text-white"} variant={isIssue && !isResolved ? "outline" : "default"} onClick={onClose}>
                                 Close
                             </Button>
                         </>

@@ -1,5 +1,5 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export const generatePDF = (title, project, data, type = 'total') => {
     // Create new PDF document
@@ -91,18 +91,14 @@ export const generatePDF = (title, project, data, type = 'total') => {
         tableRows.push(['Active Issues', openIssues.toString(), '-', 'OPEN']);
         tableRows.push(['Resolved Issues', resolvedIssues.toString(), '-', 'RESOLVED']);
 
-        doc.autoTable({
+        autoTable(doc, {
             head: [tableColumn],
             body: tableRows,
             startY: startY,
             theme: 'grid',
             headStyles: { fillColor: [0, 0, 0], textColor: [234, 179, 8] },
             styles: { fontSize: 10, cellPadding: 3 },
-            alternateRowStyles: { fillColor: [245, 245, 245] },
-            didDrawPage: (data) => {
-                // Header is already drawn for first page, but for subsequent pages?
-                // autoTable handles page breaks. We might need to re-draw header/footer hook.
-            }
+            alternateRowStyles: { fillColor: [245, 245, 245] }
         });
 
     } else if (type === 'daily') {
@@ -136,7 +132,7 @@ export const generatePDF = (title, project, data, type = 'total') => {
         if (tableRows.length === 0) {
             doc.text("No activity recorded for today.", margin, startY + 10);
         } else {
-            doc.autoTable({
+            autoTable(doc, {
                 head: [tableColumn],
                 body: tableRows,
                 startY: startY,
@@ -145,6 +141,77 @@ export const generatePDF = (title, project, data, type = 'total') => {
                 styles: { fontSize: 9 },
             });
         }
+    }
+    // --- DETAILED ISSUE HISTORY (Appended to Total Report) ---
+    if (type === 'total' && data.issues && data.issues.length > 0) {
+        // Add a page break or spacing
+        let finalY = doc.lastAutoTable.finalY + 15;
+
+        // If not enough space, new page
+        if (finalY > pageHeight - 30) {
+            doc.addPage();
+            finalY = 20;
+            addHeader();
+            finalY = 50;
+        }
+
+        doc.setFontSize(14);
+        doc.setTextColor(234, 179, 8); // Yellow
+        doc.text("Issue History & Resolution Log", margin, finalY);
+
+        const issueRows = data.issues.map(issue => {
+            const isResolved = issue.status === 'resolved';
+
+            // Format Report Info
+            const reportDate = issue.createdAt ? new Date(issue.createdAt.seconds ? issue.createdAt.seconds * 1000 : issue.createdAt).toLocaleString() : 'N/A';
+            const reporter = issue.createdBy || issue.reportedBy || 'Unknown';
+            const desc = issue.description || issue.issueDescription || issue.notes || '-';
+
+            const reportInfo = `Reported: ${reportDate}\nBy: ${reporter}\n\n${desc}`;
+
+            // Format Resolution Info
+            let resInfo = '-';
+            if (isResolved) {
+                const resDate = issue.resolvedAt ? new Date(issue.resolvedAt.seconds ? issue.resolvedAt.seconds * 1000 : issue.resolvedAt).toLocaleString() : 'N/A';
+                const resolver = issue.resolvedBy || 'Unknown';
+                const notes = issue.resolutionNotes || '-';
+                resInfo = `Resolved: ${resDate}\nBy: ${resolver}\n\n${notes}`;
+            }
+
+            return [
+                issue.status.toUpperCase(),
+                issue.locationId || issue.location || 'General',
+                reportInfo,
+                resInfo
+            ];
+        });
+
+        autoTable(doc, {
+            head: [['Status', 'Location', 'Problem Report', 'Resolution Details']],
+            body: issueRows,
+            startY: finalY + 5,
+            theme: 'grid',
+            headStyles: { fillColor: [40, 40, 40], textColor: [255, 255, 255] },
+            styles: { fontSize: 8, cellPadding: 4, valign: 'top' },
+            columnStyles: {
+                0: { cellWidth: 20, fontStyle: 'bold' }, // Status
+                1: { cellWidth: 25 }, // Location
+                2: { cellWidth: 'auto' }, // Report
+                3: { cellWidth: 'auto' }  // Resolution
+            },
+            alternateRowStyles: { fillColor: [250, 250, 250] },
+            didParseCell: (data) => {
+                // Colorize Status
+                if (data.section === 'body' && data.column.index === 0) {
+                    const status = data.cell.raw;
+                    if (status === 'RESOLVED') {
+                        data.cell.styles.textColor = [0, 150, 0]; // Green
+                    } else {
+                        data.cell.styles.textColor = [200, 0, 0]; // Red
+                    }
+                }
+            }
+        });
     }
 
     // Add Footer to all pages

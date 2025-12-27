@@ -966,7 +966,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Filter Tabs */}
-                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                    <div className="flex gap-2 gap-y-3 mb-4 flex-wrap justify-center">
                         <button
                             onClick={() => setActiveTab('all')}
                             className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${activeTab === 'all'

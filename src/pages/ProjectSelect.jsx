@@ -4,7 +4,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Plus, Building2, Calendar, ChevronRight, Wand2, Eraser, Users, X, UserPlus, Trash2, Download, Edit, Target, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Building2, Calendar, ChevronRight, Wand2, Eraser, Users, X, UserPlus, Trash2, Download, Edit, Target, Search, AlertTriangle, Lock } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { db } from '../firebase';
@@ -273,9 +273,13 @@ export default function ProjectSelect() {
             setRoomListText(p.rooms ? p.rooms.join('\n') : '');
             setTeamMembers(p.team || []);
             setProjectManager(p.manager || '');
-            setDeviceTypes(p.devices || []);
-            setContacts(p.contacts || []);
-            setDeviceTypes(p.devices || []);
+
+            // Fallback: If devices array is missing (legacy project), derive from targets
+            const initialDevices = (p.devices && p.devices.length > 0)
+                ? p.devices
+                : (p.targets ? Object.keys(p.targets) : []);
+
+            setDeviceTypes(initialDevices);
             setContacts(p.contacts || []);
             setBlueprints(p.blueprints || []);
             setStartDate(p.startDate || '');
@@ -690,43 +694,62 @@ export default function ProjectSelect() {
                 {/* Auth Confirmation Modal (Delete/Edit) */}
                 {
                     (projectToAuth || authAction === 'create') && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                            <div className="bg-gray-900/50 text-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 p-6">
-                                <h2 className={`text - xl font - bold mb - 2 ${authAction === 'delete' ? 'text-destructive' : 'text-primary'} `}>
-                                    {authAction === 'delete' ? 'Delete Project?' : authAction === 'create' ? 'Admin Access Required' : 'Edit Project'}
-                                </h2>
-                                <p className="text-gray-300 mb-4">
-                                    {authAction === 'delete'
-                                        ? `This will permanently delete ${projectToAuth?.name} and all data.This cannot be undone.`
-                                        : authAction === 'create'
-                                            ? "Enter Master PIN to create a new project."
-                                            : `Enter PIN to edit details for ${projectToAuth?.name}.`
-                                    }
-                                </p>
-
-                                <div className="space-y-2 mb-6">
-                                    <label className="text-sm font-medium text-white">Enter PIN to confirm</label>
-                                    <input
-                                        type="password"
-                                        className="w-full rounded-md border border-input bg-gray-900/50 text-white px-3 py-2 text-center tracking-widest font-mono text-lg"
-                                        placeholder="Enter PIN"
-                                        value={authPin}
-                                        onChange={(e) => {
-                                            setAuthPin(e.target.value);
-                                            setAuthError('');
-                                        }}
-                                    />
-                                    {authError && <p className="text-xs text-destructive font-medium">{authError}</p>}
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+                            <div className="bg-gray-950 border border-yellow-500/20 w-full max-w-sm rounded-2xl shadow-[0_0_50px_-12px_rgba(234,179,8,0.2)] overflow-hidden animate-in zoom-in-95 duration-300">
+                                {/* Header */}
+                                <div className="p-6 pb-0 flex flex-col items-center text-center">
+                                    <div className="h-12 w-12 rounded-full bg-yellow-500/10 flex items-center justify-center mb-4 ring-1 ring-yellow-500/20">
+                                        <Lock className="h-6 w-6 text-yellow-500" />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-white mb-2">
+                                        {authAction === 'delete' ? 'Delete Project' : 'Security Check'}
+                                    </h2>
+                                    <p className="text-sm text-gray-400 max-w-[240px] leading-relaxed">
+                                        {authAction === 'delete'
+                                            ? `This action is permanent and cannot be undone.`
+                                            : "Please enter the master PIN to continue with this action."
+                                        }
+                                    </p>
                                 </div>
 
-                                <div className="flex justify-end gap-2">
-                                    <Button variant="ghost" onClick={closeAuthModal}>Cancel</Button>
-                                    <Button
-                                        variant={authAction === 'delete' ? 'destructive' : 'default'}
-                                        onClick={handleAuthSubmit}
-                                    >
-                                        {authAction === 'delete' ? 'Delete Forever' : 'Unlock Edit'}
-                                    </Button>
+                                {/* Body */}
+                                <div className="p-6 space-y-6">
+                                    <div className="space-y-2">
+                                        <input
+                                            type="password"
+                                            autoFocus
+                                            className="w-full text-center text-3xl font-mono tracking-widest px-4 py-4 rounded-xl border border-gray-800 bg-black/50 text-yellow-500 placeholder-gray-800 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all shadow-inner"
+                                            placeholder="••••••"
+                                            value={authPin}
+                                            onChange={(e) => {
+                                                setAuthPin(e.target.value.replace(/[^0-9]/g, ''));
+                                                setAuthError('');
+                                            }}
+                                            maxLength={20}
+                                        />
+                                        {authError && (
+                                            <div className="flex items-center justify-center gap-2 text-red-500 text-xs font-medium animate-pulse mt-2">
+                                                <AlertTriangle className="h-3 w-3" />
+                                                {authError}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <Button
+                                            variant="ghost"
+                                            onClick={closeAuthModal}
+                                            className="h-12 rounded-xl text-gray-400 hover:text-white hover:bg-gray-900"
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            className="h-12 rounded-xl bg-yellow-500 text-black hover:bg-yellow-400 font-bold shadow-lg shadow-yellow-500/20"
+                                            onClick={handleAuthSubmit}
+                                        >
+                                            {authAction === 'delete' ? 'Confirm Delete' : 'Verify PIN'}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
