@@ -41,7 +41,8 @@ import {
     Map,
     MessageSquare,
     Send,
-    Download
+    Download,
+    Maximize,
 } from 'lucide-react';
 
 const getIcon = (type) => {
@@ -95,6 +96,7 @@ export default function Dashboard() {
     const [activeTab, setActiveTab] = useState('all'); // all, tv, ap, chromecast, cloning, issue
     const [unseenAnnouncements, setUnseenAnnouncements] = useState([]);
     const [newAnnouncement, setNewAnnouncement] = useState('');
+    const [zoomedImage, setZoomedImage] = useState(null);
 
     // FIX: These are now defined and safe to use
     const projectDevices = currentProject?.devices || [];
@@ -792,15 +794,10 @@ export default function Dashboard() {
                                         <div key={idx} className="space-y-2">
                                             <div className="relative group aspect-video bg-black rounded-lg overflow-hidden border border-gray-700">
                                                 <img src={bp.data} alt={bp.name} className="w-full h-full object-contain" />
-                                                <div className="absolute inset-0 bg-black/0 hover:bg-black/60 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                                    <a
-                                                        href={bp.data}
-                                                        download={bp.name}
-                                                        className="bg-yellow-500 text-black p-2 rounded-full shadow-lg hover:bg-yellow-400 transition-colors"
-                                                        title="Download"
-                                                    >
-                                                        <Download className="h-5 w-5" />
-                                                    </a>
+                                                <div className="absolute inset-0 bg-black/0 hover:bg-black/60 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer" onClick={() => setZoomedImage(bp.data)}>
+                                                    <div className="bg-yellow-500 text-black p-2 rounded-full shadow-lg hover:bg-yellow-400 transition-colors">
+                                                        <Maximize className="h-5 w-5" />
+                                                    </div>
                                                 </div>
                                             </div>
                                             <p className="text-sm font-medium text-center truncate text-gray-300">{bp.name}</p>
@@ -1051,6 +1048,30 @@ export default function Dashboard() {
                     </div>
                 </div>
             </main>
+
+            {/* Zoomed Blueprint Lightbox */}
+            {zoomedImage && (
+                <div
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 animate-in fade-in duration-200 cursor-zoom-out"
+                    onClick={() => setZoomedImage(null)}
+                >
+                    <div className="relative w-full h-full p-4 flex items-center justify-center">
+                        <img
+                            src={zoomedImage}
+                            alt="Zoomed Blueprint"
+                            className="max-w-full max-h-full object-contain shadow-2xl rounded-sm"
+                        />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-4 right-4 text-white/50 hover:text-white rounded-full bg-black/50 hover:bg-black/80"
+                            onClick={() => setZoomedImage(null)}
+                        >
+                            <X className="h-8 w-8" />
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <ActivityDetailModal
                 activity={selectedActivity}

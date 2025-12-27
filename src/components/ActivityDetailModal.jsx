@@ -224,7 +224,8 @@ export default function ActivityDetailModal({ activity, onClose }) {
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider flex items-center gap-2">
-                                        <AlertTriangle className="h-3 w-3" /> Issue Report
+                                        {isIssue ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                                        {isIssue ? "Issue Report" : "Installation Details"}
                                     </h3>
                                     <span className="text-xs text-gray-500">{formatDate(activity.createdAt)}</span>
                                 </div>
@@ -237,9 +238,9 @@ export default function ActivityDetailModal({ activity, onClose }) {
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium text-white">
-                                                {activity.createdBy || activity.reportedBy || 'Unknown User'}
+                                                {isIssue ? (activity.createdBy || activity.reportedBy || 'Unknown User') : (activity.installerName || activity.installer || 'Unknown Installer')}
                                             </p>
-                                            <p className="text-xs text-gray-500">reported this issue</p>
+                                            <p className="text-xs text-gray-500">{isIssue ? "reported this issue" : "performed this installation"}</p>
                                         </div>
                                     </div>
 
@@ -262,7 +263,7 @@ export default function ActivityDetailModal({ activity, onClose }) {
 
                                     {/* Description */}
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-1">Description</p>
+                                        <p className="text-xs text-gray-500 mb-1">{isIssue ? "Description" : "Installation Notes"}</p>
                                         {isEditing ? (
                                             <textarea
                                                 className="w-full bg-gray-800 border-gray-700 rounded p-2 text-sm text-white"
