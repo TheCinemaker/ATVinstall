@@ -1030,6 +1030,33 @@ export default function Dashboard() {
                                             <p className="text-gray-400 truncate text-xs mt-1">
                                                 {item.type === 'issue' ? item.description : `${item.locationType} • ${item.installerName || item.installer?.split('@')[0]}`}
                                             </p>
+
+                                            {/* Tech Info Chips */}
+                                            {(!item.type || item.type !== 'issue') && (
+                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                    {item.serialNumber && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-800 text-gray-300 border border-gray-700 font-mono">
+                                                            SN: {item.serialNumber}
+                                                        </span>
+                                                    )}
+                                                    {item.portInfo && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-900/20 text-blue-400 border border-blue-900/30">
+                                                            {item.portInfo}
+                                                        </span>
+                                                    )}
+                                                    {item.switchName && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-900/20 text-purple-400 border border-purple-900/30">
+                                                            SW: {item.switchName}
+                                                        </span>
+                                                    )}
+                                                    {item.switchPosition && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-900/20 text-purple-400 border border-purple-900/30">
+                                                            Pos: {item.switchPosition}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {(item.type === 'issue' || item.hasIssue) && !isResolved && (
                                                 <p className="text-xs text-red-400 mt-1 font-medium">
                                                     {item.issueDescription ? `- ${item.issueDescription}` : ''}
