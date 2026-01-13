@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { X, Calendar, User, MapPin, Hash, Router, Image as ImageIcon, AlertTriangle, FileText, CheckCircle2, Plus, Loader2, Edit, Save, ScanBarcode } from 'lucide-react';
+import { X, Calendar, User, MapPin, Hash, Router, Image as ImageIcon, AlertTriangle, FileText, CheckCircle2, Plus, Loader2, Edit, Save, ScanBarcode, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import ImageUpload from './ImageUpload';
 import BarcodeScanner from './BarcodeScanner';
 import { useProject } from '../contexts/ProjectContext';
-import { useAuth } from '../contexts/AuthContext'; // Import Auth
+import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 export default function ActivityDetailModal({ activity, onClose }) {
-    const { user } = useAuth(); // Get User
+    const { user } = useAuth();
     const { currentProject } = useProject();
     const [isResolving, setIsResolving] = useState(false);
     const [resolutionNotes, setResolutionNotes] = useState('');
@@ -28,6 +28,9 @@ export default function ActivityDetailModal({ activity, onClose }) {
     const [showScanner, setShowScanner] = useState(false);
     const [scanTarget, setScanTarget] = useState(null); // 'serial' or 'mac'
     const [zoomedImage, setZoomedImage] = useState(null); // For Image Zoom
+
+    // Delete Confirmation State
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleScan = (result) => {
         if (scanTarget === 'serial') {
@@ -138,9 +141,31 @@ export default function ActivityDetailModal({ activity, onClose }) {
 
             await updateDoc(activityRef, updates);
             setIsEditing(false);
+            onClose(); // Close to refresh list
         } catch (error) {
             console.error("Error updating activity:", error);
             alert("Failed to update activity.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!window.confirm("Are you sure you want to DELETE this record? This cannot be undone.")) {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const collectionName = activity.type === 'issue' || activity.hasIssue ? 'issues' : 'installations';
+            const activityRef = doc(db, 'projects', currentProject.id, collectionName, activity.id);
+
+            await deleteDoc(activityRef);
+            console.log("Record deleted");
+            onClose();
+        } catch (error) {
+            console.error("Error deleting activity:", error);
+            alert("Failed to delete activity.");
         } finally {
             setLoading(false);
         }
@@ -165,9 +190,14 @@ export default function ActivityDetailModal({ activity, onClose }) {
                     </div>
                     <div className="flex gap-2">
                         {!isResolving && !isEditing && (
-                            <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="rounded-full hover:bg-gray-800 text-gray-400 hover:text-white" title="Edit">
-                                <Edit className="h-5 w-5" />
-                            </Button>
+                            <>
+                                <Button variant="ghost" size="icon" onClick={() => setIsDeleting(true)} className="rounded-full hover:bg-red-900/50 text-gray-400 hover:text-red-500" title="Delete">
+                                    <Trash2 className="h-5 w-5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="rounded-full hover:bg-gray-800 text-gray-400 hover:text-white" title="Edit">
+                                    <Edit className="h-5 w-5" />
+                                </Button>
+                            </>
                         )}
                         <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-gray-800 text-gray-400 hover:text-white">
                             <X className="h-5 w-5" />
@@ -178,7 +208,25 @@ export default function ActivityDetailModal({ activity, onClose }) {
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
 
-                    {isResolving ? (
+                    {isDeleting ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center space-y-4 animate-in fade-in duration-300">
+                            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20">
+                                <Trash2 className="h-8 w-8 text-red-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-white">Törlés megerősítése</h3>
+                                <p className="text-gray-400 text-sm mt-1">Biztosan törölni akarod ezt a bejegyzést?<br />Az adat és a fotók hivatkozásai végleg törlődnek a listából.</p>
+                            </div>
+                            <div className="flex gap-3 w-full pt-4">
+                                <Button variant="outline" className="flex-1 border-gray-700 hover:bg-gray-800" onClick={() => setIsDeleting(false)}>
+                                    Mégse
+                                </Button>
+                                <Button variant="destructive" className="flex-1 bg-red-600 hover:bg-red-700" onClick={handleDelete} disabled={loading}>
+                                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Igen, törlés'}
+                                </Button>
+                            </div>
+                        </div>
+                    ) : isResolving ? (
                         <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-300">
                             <div className="bg-green-900/10 border border-green-900/30 p-4 rounded-xl">
                                 <h3 className="font-semibold text-green-400 mb-2 flex items-center gap-2">
@@ -237,9 +285,18 @@ export default function ActivityDetailModal({ activity, onClose }) {
                                             <User className="h-5 w-5 text-red-500" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium text-white">
-                                                {isIssue ? (activity.createdBy || activity.reportedBy || 'Unknown User') : (activity.installerName || activity.installer || 'Unknown Installer')}
-                                            </p>
+                                            {isEditing ? (
+                                                <input
+                                                    className="bg-gray-800 border-gray-700 rounded px-2 py-1 text-sm text-white w-full"
+                                                    value={editInstaller}
+                                                    onChange={(e) => setEditInstaller(e.target.value)}
+                                                    placeholder="Installer Name"
+                                                />
+                                            ) : (
+                                                <p className="text-sm font-medium text-white">
+                                                    {isIssue ? (activity.createdBy || activity.reportedBy || 'Unknown User') : (activity.installerName || activity.installer || 'Unknown Installer')}
+                                                </p>
+                                            )}
                                             <p className="text-xs text-gray-500">{isIssue ? "reported this issue" : "performed this installation"}</p>
                                         </div>
                                     </div>
@@ -251,12 +308,56 @@ export default function ActivityDetailModal({ activity, onClose }) {
                                             <MapPin className="h-4 w-4 text-gray-500" />
                                             {isEditing ? (
                                                 <input
-                                                    className="bg-gray-800 border-gray-700 rounded px-2 py-1 text-sm text-white"
+                                                    className="bg-gray-800 border-gray-700 rounded px-2 py-1 text-sm text-white w-full"
                                                     value={editLocation}
                                                     onChange={(e) => setEditLocation(e.target.value)}
                                                 />
                                             ) : (
                                                 <span>{activity.locationId || activity.location || 'N/A'}</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Serial & MAC - Show in Edit AND View mode */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs text-gray-500 mb-1">Serial Number</p>
+                                            {isEditing ? (
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        className="bg-gray-800 border-gray-700 rounded px-2 py-1 text-sm text-white w-full"
+                                                        value={editSerial}
+                                                        onChange={(e) => setEditSerial(e.target.value)}
+                                                    />
+                                                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => startScan('serial')}>
+                                                        <ScanBarcode className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 text-gray-300">
+                                                    <Hash className="h-4 w-4 text-gray-500" />
+                                                    <span className="font-mono">{activity.serialNumber || 'N/A'}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500 mb-1">MAC Address</p>
+                                            {isEditing ? (
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        className="bg-gray-800 border-gray-700 rounded px-2 py-1 text-sm text-white w-full"
+                                                        value={editMac}
+                                                        onChange={(e) => setEditMac(e.target.value)}
+                                                    />
+                                                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => startScan('mac')}>
+                                                        <ScanBarcode className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 text-gray-300">
+                                                    <Router className="h-4 w-4 text-gray-500" />
+                                                    <span className="font-mono">{activity.macAddress || 'N/A'}</span>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -269,6 +370,7 @@ export default function ActivityDetailModal({ activity, onClose }) {
                                                 className="w-full bg-gray-800 border-gray-700 rounded p-2 text-sm text-white"
                                                 value={editDescription}
                                                 onChange={(e) => setEditDescription(e.target.value)}
+                                                rows={4}
                                             />
                                         ) : (
                                             <div className="text-sm text-gray-300 leading-relaxed bg-black/30 p-3 rounded-lg border border-white/5">
@@ -362,7 +464,10 @@ export default function ActivityDetailModal({ activity, onClose }) {
 
                 {/* Footer */}
                 <div className="p-4 border-t border-gray-800 bg-black/20 flex gap-3">
-                    {isResolving ? (
+                    {isDeleting ? (
+                        // Shown in main area
+                        <></>
+                    ) : isResolving ? (
                         <>
                             <Button variant="outline" className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white" onClick={() => setIsResolving(false)} disabled={loading}>
                                 Cancel
@@ -373,6 +478,9 @@ export default function ActivityDetailModal({ activity, onClose }) {
                         </>
                     ) : isEditing ? (
                         <>
+                            <Button className="bg-red-600 hover:bg-red-700 text-white font-bold px-4" onClick={handleDelete} disabled={loading} title="Delete Record">
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
+                            </Button>
                             <Button variant="outline" className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white" onClick={() => setIsEditing(false)} disabled={loading}>
                                 Cancel
                             </Button>
