@@ -30,11 +30,14 @@ export default function ReportIssue() {
         setPhotos(newPhotos);
     };
 
+    const [loadingStatus, setLoadingStatus] = useState('');
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!description.trim()) return;
 
         setLoading(true);
+        setLoadingStatus('Uploading photos...');
         try {
             const validPhotos = photos.filter(p => p !== null);
             const projectId = currentProject.id;
@@ -43,6 +46,8 @@ export default function ReportIssue() {
             const photoUrls = await Promise.all(
                 validPhotos.map(base64 => uploadImage(base64, `${projectId}/issues`))
             );
+
+            setLoadingStatus('Submitting report...');
 
             const newIssue = {
                 location,
@@ -55,8 +60,11 @@ export default function ReportIssue() {
                 type: 'issue'
             };
 
-            // Save to Firestore
-            await addDoc(collection(db, 'projects', currentProject.id, 'issues'), newIssue);
+            // Optimistic Save
+            const savePromise = addDoc(collection(db, 'projects', currentProject.id, 'issues'), newIssue);
+            const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000));
+
+            await Promise.race([savePromise, timeoutPromise]);
 
             navigate('/dashboard');
         } catch (error) {
@@ -64,6 +72,7 @@ export default function ReportIssue() {
             alert("Failed to report issue.");
         } finally {
             setLoading(false);
+            setLoadingStatus('');
         }
     };
 
@@ -133,7 +142,7 @@ export default function ReportIssue() {
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Submitting...
+                                    {loadingStatus || 'Submitting...'}
                                 </>
                             ) : (
                                 'Submit Report'

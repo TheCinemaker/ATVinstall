@@ -164,9 +164,12 @@ export default function InstallDevice() {
         setShowScanner(true);
     };
 
+    const [loadingStatus, setLoadingStatus] = useState('');
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setLoadingStatus('Uploading photos...');
         try {
             const finalLocationType = locationType === 'Other' ? customLocation : locationType;
 
@@ -185,6 +188,8 @@ export default function InstallDevice() {
             const photoInstallUrl = await uploadIfPresent(photoInstall);
             const photoPortUrl = await uploadIfPresent(photoPort);
             const photoConfigUrl = await uploadIfPresent(photoConfig);
+
+            setLoadingStatus('Saving data...');
 
             const newInstall = {
                 deviceType,
@@ -216,8 +221,13 @@ export default function InstallDevice() {
                 }
             });
 
-            // Save to Firestore
-            await addDoc(collection(db, 'projects', currentProject.id, 'installations'), newInstall);
+            // Optimistic Save:
+            // Race between the actual save and a 3-second timeout.
+            // If the timeout wins, we assume the local cache has handled it and proceed.
+            const savePromise = addDoc(collection(db, 'projects', currentProject.id, 'installations'), newInstall);
+            const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000));
+
+            await Promise.race([savePromise, timeoutPromise]);
 
             navigate('/dashboard');
         } catch (error) {
@@ -225,6 +235,7 @@ export default function InstallDevice() {
             alert("Failed to save. Please try again.");
         } finally {
             setLoading(false);
+            setLoadingStatus('');
         }
     };
 
@@ -485,7 +496,7 @@ export default function InstallDevice() {
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Saving...
+                                    {loadingStatus || 'Saving...'}
                                 </>
                             ) : (
                                 'Save'
