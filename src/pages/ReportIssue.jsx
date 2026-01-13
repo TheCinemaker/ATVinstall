@@ -43,16 +43,19 @@ export default function ReportIssue() {
             const projectId = currentProject.id;
 
             // Upload photos concurrently
-            const photoUrls = await Promise.all(
+            const rawPhotoUrls = await Promise.all(
                 validPhotos.map(base64 => uploadImage(base64, `${projectId}/issues`))
             );
+
+            // Filter out failed uploads (nulls)
+            const photoUrls = rawPhotoUrls.filter(url => url !== null);
 
             setLoadingStatus('Submitting report...');
 
             const newIssue = {
                 location,
                 description,
-                photos: photoUrls, // Using URLs now
+                photos: photoUrls, // Only valid URLs
                 status: 'open',
                 reportedBy: user?.email || 'anonymous@user.com',
                 createdBy: user?.displayName || user?.email || 'Anonymous',

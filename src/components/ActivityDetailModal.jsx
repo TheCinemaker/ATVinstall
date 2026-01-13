@@ -64,9 +64,9 @@ export default function ActivityDetailModal({ activity, onClose }) {
 
     // Collect all photos
     const photos = [];
-    if (activity.photos) {
-        // Handle issue photos array
-        activity.photos.forEach((url, i) => photos.push({ label: `Photo ${i + 1}`, url }));
+    if (activity.photos && Array.isArray(activity.photos)) {
+        // Handle issue photos array - Filter out nulls/empty strings
+        activity.photos.filter(url => url).forEach((url, i) => photos.push({ label: `Photo ${i + 1}`, url }));
     } else {
         // Handle installation photos
         if (activity.photoPortUrl) photos.push({ label: "Port / Wall Socket", url: activity.photoPortUrl });
