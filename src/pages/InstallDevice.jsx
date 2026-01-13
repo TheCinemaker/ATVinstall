@@ -8,8 +8,10 @@ import ImageUpload from '../components/ImageUpload';
 import { ArrowLeft, Loader2, ScanBarcode } from 'lucide-react';
 import BarcodeScanner from '../components/BarcodeScanner';
 import { db } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { uploadImage } from '../utils/uploadImage';
+import { saveToQueue } from '../utils/offlineStorage';
+import { v4 as uuidv4 } from 'uuid';
 
 const DEVICE_CONFIG = {
     tv: {
@@ -221,13 +223,37 @@ export default function InstallDevice() {
                 }
             });
 
-            // Optimistic Save:
-            // Race between the actual save and a 3-second timeout.
-            // If the timeout wins, we assume the local cache has handled it and proceed.
-            const savePromise = addDoc(collection(db, 'projects', currentProject.id, 'installations'), newInstall);
+            // Optimistic Save with Offline Support
+            // 1. Generate ID immediately so we can queue photos
+            const newDocRef = doc(collection(db, 'projects', currentProject.id, 'installations'));
+
+            // 2. Start the save (but don't wait forever)
+            const savePromise = setDoc(newDocRef, newInstall);
             const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000));
 
+            // 3. Race!
             await Promise.race([savePromise, timeoutPromise]);
+
+            // 4. Queue photos that failed to upload (we use the confirmed ID)
+            const queueIfFailed = async (base64, field, url) => {
+                if (base64 && !url) {
+                    console.log(`Queuing offline photo for ${field}`);
+                    await saveToQueue({
+                        id: uuidv4(),
+                        projectId: currentProject.id,
+                        collection: 'installations',
+                        docId: newDocRef.id,
+                        field: field,
+                        base64: base64,
+                        timestamp: Date.now()
+                    });
+                }
+            };
+
+            await queueIfFailed(photoSerial, 'photoSerialUrl', photoSerialUrl);
+            await queueIfFailed(photoInstall, 'photoInstallUrl', photoInstallUrl);
+            await queueIfFailed(photoPort, 'photoPortUrl', photoPortUrl);
+            await queueIfFailed(photoConfig, 'photoConfigUrl', photoConfigUrl);
 
             navigate('/dashboard');
         } catch (error) {

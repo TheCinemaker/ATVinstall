@@ -16,6 +16,7 @@
     "clsx": "^2.1.1",
     "file-saver": "^2.0.5",
     "firebase": "^12.6.0",
+    "idb": "^8.0.3",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "jszip": "^3.10.1",

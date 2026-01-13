@@ -7,8 +7,10 @@ import Footer from '../components/Footer';
 import ImageUpload from '../components/ImageUpload';
 import { ArrowLeft, Loader2, Plus } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { uploadImage } from '../utils/uploadImage';
+import { saveToQueue } from '../utils/offlineStorage';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function ReportIssue() {
     const { currentProject } = useProject();
@@ -63,11 +65,31 @@ export default function ReportIssue() {
                 type: 'issue'
             };
 
-            // Optimistic Save
-            const savePromise = addDoc(collection(db, 'projects', currentProject.id, 'issues'), newIssue);
+            // Optimistic Save with Offline Support
+            const newDocRef = doc(collection(db, 'projects', currentProject.id, 'issues'));
+
+            const savePromise = setDoc(newDocRef, newIssue);
             const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000));
 
             await Promise.race([savePromise, timeoutPromise]);
+
+            // Queue photos that failed to upload (null URLs correspond to validPhotos indices)
+            // we have rawPhotoUrls which has nulls.
+            // validPhotos and rawPhotoUrls match index-wise.
+            for (let i = 0; i < rawPhotoUrls.length; i++) {
+                if (rawPhotoUrls[i] === null) {
+                    console.log(`Queuing offline resolution photo ${i}`);
+                    await saveToQueue({
+                        id: uuidv4(),
+                        projectId: currentProject.id,
+                        collection: 'issues',
+                        docId: newDocRef.id,
+                        field: 'photos', // array field
+                        base64: validPhotos[i],
+                        timestamp: Date.now()
+                    });
+                }
+            }
 
             navigate('/dashboard');
         } catch (error) {

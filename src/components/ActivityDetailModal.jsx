@@ -8,6 +8,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { uploadImage } from '../utils/uploadImage';
+import { saveToQueue } from '../utils/offlineStorage';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function ActivityDetailModal({ activity, onClose }) {
     const { user } = useAuth();
@@ -98,23 +100,46 @@ export default function ActivityDetailModal({ activity, onClose }) {
             const validPhotos = resolutionPhotos.filter(p => p !== null);
             const projectId = currentProject.id;
 
-            // Upload resolution photos
-            const photoUrls = await Promise.all(
+            // Upload resolution photos concurrently
+            const rawPhotoUrls = await Promise.all(
                 validPhotos.map(base64 => uploadImage(base64, `${projectId}/resolutions`))
             );
 
+            // Filter valid URLs for immediate save
+            const photoUrls = rawPhotoUrls.filter(url => url !== null);
+
             // Determine collection name based on activity type
-            const collectionName = activity.type === 'issue' ? 'issues' : 'installations';
+            const collectionName = activity.type === 'issue' || activity.hasIssue ? 'issues' : 'installations';
 
             const activityRef = doc(db, 'projects', currentProject.id, collectionName, activity.id);
 
-            await updateDoc(activityRef, {
+            // Optimistic Update
+            const updatePromise = updateDoc(activityRef, {
                 status: 'resolved',
                 resolutionNotes,
-                resolutionPhotos: photoUrls, // Using URLs
-                resolvedBy: user?.displayName || user?.email || 'Admin', // Save the resolver!
+                resolutionPhotos: photoUrls, // save valid ones immediately
+                resolvedBy: user?.displayName || user?.email || 'Admin',
                 resolvedAt: new Date()
             });
+            const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000));
+
+            await Promise.race([updatePromise, timeoutPromise]);
+
+            // Queue failed uploads
+            for (let i = 0; i < rawPhotoUrls.length; i++) {
+                if (rawPhotoUrls[i] === null) {
+                    console.log(`Queuing offline resolution photo ${i}`);
+                    await saveToQueue({
+                        id: uuidv4(),
+                        projectId: currentProject.id,
+                        collection: collectionName,
+                        docId: activity.id,
+                        field: 'resolutionPhotos',
+                        base64: validPhotos[i],
+                        timestamp: Date.now()
+                    });
+                }
+            }
 
             onClose();
         } catch (error) {

@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import ProjectSelect from './pages/ProjectSelect';
 import InstallDevice from './pages/InstallDevice';
 import ReportIssue from './pages/ReportIssue';
+import OfflineSyncManager from './components/OfflineSyncManager';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -18,6 +19,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ProjectProvider>
+        <OfflineSyncManager />
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
