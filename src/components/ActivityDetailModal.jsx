@@ -214,15 +214,15 @@ export default function ActivityDetailModal({ activity, onClose }) {
                                 <Trash2 className="h-8 w-8 text-red-500" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-white">Törlés megerősítése</h3>
-                                <p className="text-gray-400 text-sm mt-1">Biztosan törölni akarod ezt a bejegyzést?<br />Az adat és a fotók hivatkozásai végleg törlődnek a listából.</p>
+                                <h3 className="text-lg font-bold text-white">Confirm Deletion</h3>
+                                <p className="text-gray-400 text-sm mt-1">Are you sure you want to delete this record?<br />Data and photo references will be permanently removed.</p>
                             </div>
                             <div className="flex gap-3 w-full pt-4">
                                 <Button variant="outline" className="flex-1 border-gray-700 hover:bg-gray-800" onClick={() => setIsDeleting(false)}>
-                                    Mégse
+                                    Cancel
                                 </Button>
                                 <Button variant="destructive" className="flex-1 bg-red-600 hover:bg-red-700" onClick={handleDelete} disabled={loading}>
-                                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Igen, törlés'}
+                                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Yes, Delete'}
                                 </Button>
                             </div>
                         </div>

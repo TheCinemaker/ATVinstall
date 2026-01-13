@@ -8,7 +8,7 @@ import Footer from '../components/Footer';
 import TotalReportModal from '../components/TotalReportModal';
 import DailyReportModal from '../components/DailyReportModal';
 import { db } from '../firebase';
-import { collection, query, orderBy, onSnapshot, updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, updateDoc, doc, arrayUnion, limit } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import {
     LogOut,
@@ -181,9 +181,11 @@ export default function Dashboard() {
         console.log('🔍 Dashboard loading data for project:', currentProject.id, currentProject.name);
 
         // Listen for Installations
+        // LIMIT TO 50 FOR PERFORMANCE
         const installsQuery = query(
             collection(db, 'projects', currentProject.id, 'installations'),
-            orderBy('createdAt', 'desc')
+            orderBy('createdAt', 'desc'),
+            limit(50)
         );
 
         const unsubscribeInstalls = onSnapshot(installsQuery, (snapshot) => {
@@ -199,9 +201,11 @@ export default function Dashboard() {
         });
 
         // Listen for Issues
+        // LIMIT TO 50 FOR PERFORMANCE
         const issuesQuery = query(
             collection(db, 'projects', currentProject.id, 'issues'),
-            orderBy('createdAt', 'desc')
+            orderBy('createdAt', 'desc'),
+            limit(50)
         );
 
         const unsubscribeIssues = onSnapshot(issuesQuery, (snapshot) => {
