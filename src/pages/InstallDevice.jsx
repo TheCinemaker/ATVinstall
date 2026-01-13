@@ -9,6 +9,7 @@ import { ArrowLeft, Loader2, ScanBarcode } from 'lucide-react';
 import BarcodeScanner from '../components/BarcodeScanner';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { uploadImage } from '../utils/uploadImage';
 
 const DEVICE_CONFIG = {
     tv: {
@@ -169,6 +170,22 @@ export default function InstallDevice() {
         try {
             const finalLocationType = locationType === 'Other' ? customLocation : locationType;
 
+            // Upload images first
+            const projectId = currentProject.id;
+            const uploadPromises = [];
+
+            const uploadIfPresent = async (base64, prefix) => {
+                if (base64) {
+                    return await uploadImage(base64, `${projectId}/installations`);
+                }
+                return null;
+            };
+
+            const photoSerialUrl = await uploadIfPresent(photoSerial);
+            const photoInstallUrl = await uploadIfPresent(photoInstall);
+            const photoPortUrl = await uploadIfPresent(photoPort);
+            const photoConfigUrl = await uploadIfPresent(photoConfig);
+
             const newInstall = {
                 deviceType,
                 locationType: finalLocationType,
@@ -180,10 +197,10 @@ export default function InstallDevice() {
                 isUpdateDone: isCloning ? isUpdateDone : undefined,
                 isCloningDone: isCloning ? isCloningDone : undefined,
                 notes,
-                photoSerialUrl: photoSerial || null,
-                photoInstallUrl: photoInstall || null,
-                photoPortUrl: needsPortInfo ? (photoPort || null) : null,
-                photoConfigUrl: isSignage ? (photoConfig || null) : null,
+                photoSerialUrl,
+                photoInstallUrl,
+                photoPortUrl,
+                photoConfigUrl,
                 hasIssue,
                 issueDescription,
                 installerName: user?.displayName || user?.email || 'Anonymous',

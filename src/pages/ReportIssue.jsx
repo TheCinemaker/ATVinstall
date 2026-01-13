@@ -8,6 +8,7 @@ import ImageUpload from '../components/ImageUpload';
 import { ArrowLeft, Loader2, Plus } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { uploadImage } from '../utils/uploadImage';
 
 export default function ReportIssue() {
     const { currentProject } = useProject();
@@ -36,14 +37,20 @@ export default function ReportIssue() {
         setLoading(true);
         try {
             const validPhotos = photos.filter(p => p !== null);
+            const projectId = currentProject.id;
+
+            // Upload photos concurrently
+            const photoUrls = await Promise.all(
+                validPhotos.map(base64 => uploadImage(base64, `${projectId}/issues`))
+            );
 
             const newIssue = {
                 location,
                 description,
-                photos: validPhotos,
+                photos: photoUrls, // Using URLs now
                 status: 'open',
                 reportedBy: user?.email || 'anonymous@user.com',
-                createdBy: user?.displayName || user?.email || 'Anonymous', // Added requested user name tracking
+                createdBy: user?.displayName || user?.email || 'Anonymous',
                 createdAt: new Date(),
                 type: 'issue'
             };

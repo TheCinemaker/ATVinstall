@@ -7,6 +7,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { uploadImage } from '../utils/uploadImage';
 
 export default function ActivityDetailModal({ activity, onClose }) {
     const { user } = useAuth();
@@ -95,6 +96,12 @@ export default function ActivityDetailModal({ activity, onClose }) {
         setLoading(true);
         try {
             const validPhotos = resolutionPhotos.filter(p => p !== null);
+            const projectId = currentProject.id;
+
+            // Upload resolution photos
+            const photoUrls = await Promise.all(
+                validPhotos.map(base64 => uploadImage(base64, `${projectId}/resolutions`))
+            );
 
             // Determine collection name based on activity type
             const collectionName = activity.type === 'issue' ? 'issues' : 'installations';
@@ -104,7 +111,7 @@ export default function ActivityDetailModal({ activity, onClose }) {
             await updateDoc(activityRef, {
                 status: 'resolved',
                 resolutionNotes,
-                resolutionPhotos: validPhotos,
+                resolutionPhotos: photoUrls, // Using URLs
                 resolvedBy: user?.displayName || user?.email || 'Admin', // Save the resolver!
                 resolvedAt: new Date()
             });
